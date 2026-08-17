@@ -1,22 +1,55 @@
+// eslint.config.js — Flat config (ESLint 10.x)
+import reactPlugin from '@eslint-react/eslint-plugin'
 import js from '@eslint/js'
+import reactDom from 'eslint-plugin-react-dom'
+import reactJsx from 'eslint-plugin-react-jsx' // pacote dedicado às regras JSX
 import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
-import { defineConfig, globalIgnores } from 'eslint/config'
 
-export default defineConfig([
-  globalIgnores(['dist']),
+export default tseslint.config(
   {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      js.configs.recommended,
-      tseslint.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
+    ignores: ['dist/**', 'build/**', 'coverage/**', 'node_modules/**'],
+  },
+
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+
+  {
+    files: ['**/*.{ts,tsx,js,jsx}'],
     languageOptions: {
-      globals: globals.browser,
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    plugins: {
+      '@eslint-react': reactPlugin,
+      'react-dom': reactDom,
+      'react-jsx': reactJsx,
+    },
+    rules: {
+      ...reactPlugin.configs.recommended.rules,
+      ...reactDom.configs.recommended.rules,
+      ...reactJsx.configs.recommended.rules,
+
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_' },
+      ],
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
-])
+
+  {
+    files: ['**/*.test.{ts,tsx,js,jsx}'],
+    languageOptions: {
+      globals: { ...globals.jest, ...globals.vitest },
+    },
+  },
+)

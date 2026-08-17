@@ -62,3 +62,12 @@ A comunicação deve ser:
 - Explicar termos técnicos quando necessário.
 - Evitar títulos enganosos.
 - Priorizar conteúdos úteis e verificáveis.
+
+## cores do layout
+
+```
+  #131418
+  #191C1F
+  #FBFBFB
+  #EEEEF2
+```
