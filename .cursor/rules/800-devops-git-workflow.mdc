@@ -1,0 +1,400 @@
+---
+description: Git e terminal — branches, commits, comandos e operações seguras
+globs:
+  - '**/*'
+alwaysApply: false
+---
+
+# Workflow de Git e terminal
+
+## Objetivo
+
+Definir convenções para trabalhar com Git e executar comandos de terminal com segurança.
+
+Esta rule orienta:
+
+- identificação do ambiente de execução;
+- escolha de shell e sintaxe;
+- inspeção do estado do repositório;
+- criação e nomeação de branches;
+- commits;
+- push, merge e rebase;
+- proteção contra operações destrutivas.
+
+As regras específicas do projeto, da plataforma de CI/CD e da equipe têm prioridade sobre estas orientações.
+
+## Princípios gerais
+
+- Não faça commit, push, merge, rebase ou deploy sem solicitação explícita do usuário.
+- Antes de alterar o repositório, verifique o estado atual.
+- Preserve alterações existentes do usuário.
+- Não descarte mudanças sem confirmação.
+- Mantenha commits focados em uma única mudança lógica.
+- Evite misturar refatorações, features, correções e formatação não relacionada.
+- Revise o diff antes de criar um commit.
+- Use comandos reversíveis ou de baixo risco sempre que possível.
+- Explique o impacto antes de executar uma operação potencialmente destrutiva.
+- Nunca inclua secrets, credenciais ou arquivos sensíveis em commits.
+
+## Detecção do ambiente de terminal
+
+Antes de executar comandos:
+
+1. identifique o sistema operacional;
+2. verifique o shell disponível;
+3. confirme o diretório atual;
+4. determine se o projeto está em filesystem nativo, WSL, container ou ambiente remoto;
+5. use a sintaxe compatível com o shell detectado.
+
+Não presuma que o ambiente seja Windows, WSL, Linux, macOS, Bash ou PowerShell.
+
+Verifique o diretório atual com um comando compatível com o ambiente. Quando houver dúvida, execute primeiro uma consulta simples de caminho e sistema, sem encadear operações.
+
+## Regras para comandos
+
+- Prefira comandos simples e explícitos.
+- Evite encadear operações destrutivas.
+- Não execute comandos que removam ou sobrescrevam dados sem confirmação.
+- Não use comandos específicos de outro shell sem adaptar a sintaxe.
+- Não copie caminhos entre Windows e Linux sem verificar sua validade.
+- Use caminhos absolutos somente quando isso reduzir ambiguidade.
+- Prefira caminhos relativos ao diretório do projeto quando o contexto estiver confirmado.
+- Não inclua secrets em argumentos de linha de comando quando eles puderem aparecer no histórico do shell.
+- Redija valores sensíveis em exemplos e respostas.
+
+Ao executar comandos, informe o objetivo quando a operação não for óbvia.
+
+## Estado do repositório
+
+Antes de criar commits ou realizar operações Git relevantes, verifique:
+
+```bash
+git status --short --branch
+git diff
+git diff --cached
+git branch --show-current
+git remote -v
+```
+
+Adapte os comandos ao shell detectado.
+
+Antes de alterar arquivos:
+
+- identifique mudanças já existentes;
+- determine quais mudanças pertencem à tarefa;
+- preserve alterações não relacionadas;
+- não faça reset ou limpeza para “começar do zero” sem autorização.
+
+Se houver alterações do usuário no mesmo arquivo:
+
+- não sobrescreva silenciosamente;
+- preserve o conteúdo existente;
+- faça uma edição focada;
+- solicite orientação se não for possível separar as mudanças com segurança.
+
+## Branches
+
+Evite trabalhar diretamente em:
+
+```text
+main
+master
+develop
+```
+
+quando o projeto utilizar branches de trabalho.
+
+Use nomes descritivos e consistentes:
+
+```text
+feature/<descricao-curta>
+fix/<descricao-curta>
+chore/<descricao-curta>
+refactor/<descricao-curta>
+docs/<descricao-curta>
+test/<descricao-curta>
+```
+
+Regras para nomes:
+
+- use letras minúsculas;
+- use hífens;
+- mantenha o nome curto;
+- descreva o objetivo;
+- inclua o identificador de issue quando o projeto exigir;
+- não misture objetivos diferentes na mesma branch.
+
+Exemplos:
+
+```text
+feature/password-reset
+fix/duplicate-order
+refactor/payment-validation
+docs/api-authentication
+```
+
+Antes de criar uma branch:
+
+- verifique a branch atual;
+- confirme a branch de origem;
+- verifique se há mudanças não commitadas;
+- não descarte mudanças locais;
+- siga o workflow definido pelo projeto.
+
+## Commits
+
+As mensagens de commit devem ser escritas em português do Brasil.
+
+Use inglês somente se o usuário pedir explicitamente nesta sessão.
+
+Use Conventional Commits quando o projeto não possuir outra convenção:
+
+```text
+feat: adicionar fluxo de redefinição de senha
+fix: impedir envio duplicado de pedido
+refactor: extrair validação de pagamento
+docs: atualizar autenticação da API
+test: adicionar regressão para e-mail nulo
+chore: atualizar configuração do eslint
+```
+
+Formato recomendado:
+
+```text
+tipo: descrição curta no imperativo
+```
+
+Tipos comuns:
+
+- `feat`: nova funcionalidade;
+- `fix`: correção de bug;
+- `refactor`: alteração estrutural sem mudança de comportamento;
+- `docs`: documentação;
+- `test`: testes;
+- `chore`: manutenção;
+- `build`: build e dependências;
+- `ci`: CI/CD;
+- `perf`: performance.
+
+A mensagem deve:
+
+- estar em português do Brasil;
+- descrever o resultado da mudança;
+- ser curta e específica;
+- evitar detalhes de implementação desnecessários;
+- não usar “update code” ou descrições genéricas;
+- incluir escopo ou issue quando necessário.
+
+Exemplos ruins:
+
+```text
+update code
+fix stuff
+changes
+final version
+```
+
+Antes de criar um commit:
+
+1. execute `git status`;
+2. revise `git diff`;
+3. revise `git diff --cached`;
+4. confirme os arquivos incluídos;
+5. verifique se não há secrets;
+6. execute testes relevantes;
+7. faça stage somente dos arquivos da mudança;
+8. crie um commit lógico e focado.
+
+Prefira:
+
+```bash
+git add -p
+```
+
+ou o stage explícito de arquivos, em vez de adicionar tudo sem revisão.
+
+Não faça commit automaticamente.
+
+## Commits focados
+
+Um commit deve representar uma mudança lógica única.
+
+Separe, quando aplicável:
+
+- renomeação ou movimentação de arquivos;
+- alteração de comportamento;
+- reformatação ampla;
+- atualização de dependências;
+- mudanças de documentação;
+- correções independentes.
+
+Um commit que exige a palavra “e” várias vezes na descrição pode conter mais de uma mudança lógica.
+
+Commits pequenos, autocontidos e reversíveis facilitam:
+
+- revisão;
+- rollback;
+- identificação de regressões;
+- cherry-pick;
+- compreensão do histórico.
+
+## Push
+
+Não faça push sem solicitação explícita.
+
+Antes de fazer push:
+
+- confirme a branch;
+- confirme o remoto;
+- revise os commits;
+- confirme que os testes relevantes passaram;
+- verifique se há mudanças remotas novas;
+- avalie se a branch é compartilhada.
+
+Prefira:
+
+```bash
+git push origin <branch>
+```
+
+Não use force push por padrão.
+
+Quando for realmente necessário reescrever o histórico de uma branch própria e houver autorização explícita, prefira:
+
+```bash
+git push --force-with-lease
+```
+
+Não use force push em `main`, `master`, `develop` ou branches compartilhadas sem autorização explícita, avaliação de impacto e procedimento acordado.
+
+## Pull, merge e rebase
+
+Antes de atualizar uma branch:
+
+- verifique mudanças locais;
+- confirme a branch de destino;
+- confirme se há trabalho não commitado;
+- avalie conflitos potenciais;
+- preserve alterações do usuário.
+
+Antes de fazer merge ou rebase:
+
+- confirme a branch atual;
+- confirme a branch de origem;
+- verifique o histórico;
+- execute testes ou validações quando aplicável;
+- não reescreva histórico compartilhado sem autorização.
+
+Se um rebase for interrompido:
+
+- não execute comandos destrutivos para “resolver” rapidamente;
+- inspecione os conflitos;
+- preserve mudanças relevantes;
+- use `git rebase --abort` somente quando isso for seguro e autorizado;
+- explique o estado resultante.
+
+Após resolver conflitos:
+
+- revise cada arquivo;
+- procure marcadores de conflito;
+- execute testes;
+- revise o diff completo.
+
+## Operações proibidas sem confirmação
+
+Solicite confirmação explícita antes de executar:
+
+```bash
+git reset --hard
+git clean -fd
+git clean -fdx
+git push --force
+git push --force-with-lease
+git rebase
+git branch -D
+git checkout -- <arquivo>
+git restore <arquivo>
+```
+
+Também solicite confirmação antes de:
+
+- remover branches;
+- descartar mudanças locais;
+- sobrescrever arquivos;
+- alterar histórico;
+- fazer merge;
+- fazer deploy;
+- modificar tags;
+- executar scripts de release;
+- apagar arquivos não rastreados.
+
+Mesmo comandos que parecem seguros podem causar perda de trabalho dependendo do estado do repositório.
+
+## Hooks e verificações
+
+- Não use `--no-verify` sem solicitação explícita.
+- Não remova ou desative hooks para contornar falhas.
+- Investigue a causa de falhas de lint, testes ou validações.
+- Se um hook falhar, informe o comando, a causa e o impacto.
+- Não declare o commit pronto apenas porque o stage foi criado.
+- Siga os scripts definidos no `package.json` e na configuração do projeto.
+
+## Arquivos sensíveis
+
+Antes do commit, verifique se não estão sendo incluídos:
+
+- `.env`;
+- chaves privadas;
+- certificados;
+- tokens;
+- dumps de banco;
+- logs com PII;
+- arquivos temporários;
+- artefatos de build indevidos;
+- credenciais de serviços;
+- backups;
+- configurações locais.
+
+Não adicione um secret ao `.gitignore` depois de ele já ter sido commitado e considere o problema resolvido. Se um secret foi versionado, ele deve ser revogado ou rotacionado e o histórico deve ser tratado conforme o procedimento de segurança.
+
+## Sugestão de commit
+
+Quando o usuário pedir uma sugestão de commit, forneça uma mensagem específica seguindo a convenção do projeto.
+
+Exemplo:
+
+```text
+fix: impedir criação duplicada de pedidos
+```
+
+Explique o motivo somente quando houver ambiguidade.
+
+Não faça o commit automaticamente ao apenas sugerir uma mensagem.
+
+## Fluxo recomendado
+
+Para uma tarefa comum:
+
+1. verifique o estado do repositório;
+2. confirme a branch;
+3. leia as rules aplicáveis;
+4. implemente a mudança;
+5. execute testes e validações;
+6. revise o diff;
+7. faça stage seletivo;
+8. sugira uma mensagem de commit;
+9. crie o commit somente se solicitado;
+10. faça push somente se solicitado.
+
+## Critério de conclusão
+
+Considere uma alteração de Git concluída somente quando:
+
+- a branch e o remoto tiverem sido confirmados;
+- mudanças existentes tiverem sido preservadas;
+- o diff tiver sido revisado;
+- arquivos sensíveis tiverem sido excluídos;
+- testes relevantes tiverem sido executados;
+- commits, quando solicitados, forem focados;
+- operações destrutivas tiverem aprovação;
+- o estado final do repositório tiver sido verificado.

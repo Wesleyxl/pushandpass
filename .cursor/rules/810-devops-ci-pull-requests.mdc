@@ -1,0 +1,332 @@
+---
+description: CI/CD e Pull Requests — alterações seguras em pipelines, validação e critérios de integração
+globs:
+  - '.github/**/*'
+  - '.gitlab-ci.yml'
+  - '.gitlab/**/*'
+  - 'Jenkinsfile'
+  - 'azure-pipelines.yml'
+  - 'bitbucket-pipelines.yml'
+  - 'ci/**/*'
+  - 'scripts/**/*'
+  - 'package.json'
+  - 'Makefile'
+alwaysApply: false
+---
+
+# CI/CD e Pull Requests
+
+## Objetivo
+
+Definir regras para manter pipelines estáveis, preservar validações existentes e integrar alterações com segurança.
+
+Esta rule se aplica a mudanças em:
+
+- workflows;
+- pipelines;
+- scripts de CI/CD;
+- configurações de build;
+- comandos de teste;
+- automações de release;
+- Pull Requests;
+- critérios de merge.
+
+Ela complementa:
+
+```text
+020-core-change-boundaries.mdc
+800-devops-git-workflow.mdc
+500-quality-testing-policy.mdc
+```
+
+## Princípios gerais
+
+- Não altere CI/CD sem aprovação explícita quando a mudança afetar deploy, produção, segurança ou critérios de merge.
+- Preserve etapas existentes de lint, testes, build e verificações de segurança.
+- Siga a ordem e o fluxo já configurados pelo projeto.
+- Não remova uma etapa apenas para fazer o pipeline passar.
+- Não enfraqueça critérios de aprovação sem explicar o impacto.
+- Alinhe scripts aos comandos oficiais do projeto.
+- Prefira mudanças pequenas, observáveis e reversíveis.
+- Não introduza ferramentas novas sem justificar necessidade, impacto e manutenção.
+- Valide alterações de pipeline antes de integrá-las à branch principal.
+
+## Alterações em CI/CD
+
+Antes de alterar uma configuração de CI/CD:
+
+1. identifique qual pipeline será afetado;
+2. determine quais branches, eventos ou ambientes usam a configuração;
+3. leia os scripts referenciados;
+4. verifique variáveis e secrets necessários;
+5. preserve etapas existentes;
+6. avalie impacto em tempo, custo, segurança e deploy;
+7. identifique possibilidade de rollback;
+8. solicite aprovação quando a mudança for de alto risco.
+
+Considere de alto risco alterações que:
+
+- removam testes, lint ou build;
+- alterem critérios de merge;
+- modifiquem deploy;
+- mudem permissões;
+- exponham secrets;
+- alterem ambientes de produção;
+- mudem imagens base ou ferramentas de build;
+- alterem regras de execução por branch, tag ou evento;
+- mudem jobs administrativos ou de release.
+
+## Proteção do pipeline
+
+Não:
+
+- remova etapas existentes para ocultar falhas;
+- ignore testes sem justificativa;
+- use `allow_failure` para mascarar uma falha crítica;
+- desative verificações de segurança sem aprovação;
+- faça jobs sensíveis executarem em branches não confiáveis;
+- exponha secrets em logs;
+- imprima variáveis sensíveis;
+- use artefatos não confiáveis em etapas privilegiadas;
+- permita que Pull Requests não confiáveis acessem credenciais de produção;
+- altere regras de execução sem verificar eventos e branches afetados.
+
+Use permissões mínimas para jobs e mantenha secrets disponíveis somente onde forem necessários.
+
+## Ordem das validações
+
+Preserve a ordem já adotada pelo projeto.
+
+Uma sequência comum é:
+
+```text
+lint → testes → build → publicação ou deploy
+```
+
+Mas a ordem real pode variar conforme:
+
+- dependências entre jobs;
+- cache;
+- geração de artefatos;
+- testes de contrato;
+- análise de segurança;
+- aprovação manual;
+- ambiente de deploy.
+
+Não reorganize o pipeline apenas para seguir esta sequência de exemplo.
+
+## Scripts e ferramentas
+
+Scripts novos devem:
+
+- seguir a convenção do projeto;
+- ser compatíveis com o gerenciador utilizado;
+- estar alinhados ao `package.json`, `Makefile` ou equivalente;
+- possuir nomes claros;
+- retornar códigos de saída corretos;
+- falhar de forma explícita quando uma validação obrigatória não passar;
+- evitar comandos destrutivos por padrão;
+- funcionar no ambiente de CI definido pelo projeto;
+- possuir documentação quando o uso não for óbvio.
+
+Antes de adicionar um script:
+
+1. verifique se já existe um comando equivalente;
+2. procure scripts semelhantes;
+3. reutilize ferramentas existentes;
+4. evite duplicar comandos;
+5. confirme o comportamento local e no CI.
+
+Não crie comandos diferentes para a mesma ação sem uma justificativa clara.
+
+## Regras condicionais de pipeline
+
+Ao alterar regras de execução:
+
+- identifique eventos envolvidos;
+- verifique branches e tags;
+- avalie pipelines de Pull Request;
+- avalie pipelines de push;
+- considere execução manual e agendada;
+- verifique o comportamento quando nenhuma regra corresponder;
+- evite duplicar pipelines para o mesmo evento;
+- teste alterações de `if`, `changes`, `exists`, `when` ou equivalente.
+
+Quando a plataforma utilizar regras condicionais, documente a intenção da condição.
+
+Exemplos de decisões que precisam ser verificadas:
+
+- executar somente em `main`;
+- executar em Pull Requests;
+- executar quando determinados arquivos mudarem;
+- não executar em pipelines agendadas;
+- executar manualmente em produção;
+- evitar pipeline duplicado em push e Pull Request.
+
+Não altere uma condição apenas porque ela parece redundante sem verificar seus efeitos nos eventos reais.
+
+## Pull Requests
+
+Quando o usuário solicitar uma Pull Request, forneça:
+
+### Resumo
+
+Explique em um a três itens:
+
+- o que foi alterado;
+- por que a alteração foi necessária;
+- qual comportamento foi corrigido ou adicionado.
+
+### Plano de testes
+
+Inclua verificações concretas:
+
+- comandos executados;
+- testes relevantes;
+- validações manuais;
+- ambientes utilizados;
+- limitações conhecidas.
+
+Não escreva apenas:
+
+```text
+Testes realizados.
+```
+
+Prefira:
+
+```text
+- `pnpm test --filter pedidos`
+- `pnpm lint`
+- validação manual do fluxo de criação duplicada
+```
+
+Use os comandos reais do projeto.
+
+### Alterações incompatíveis
+
+Indique explicitamente:
+
+- se existe quebra de API;
+- se há mudança de schema;
+- se há migration;
+- se há alteração de comportamento legado;
+- se clientes precisam ser atualizados;
+- se há necessidade de rollout gradual;
+- se existe risco operacional.
+
+Se não houver quebra conhecida, escreva isso claramente.
+
+### Documentação
+
+Informe se foram atualizados:
+
+- README;
+- especificação;
+- contrato de API;
+- changelog;
+- documentação de operação;
+- exemplos de uso.
+
+Mudanças visíveis para usuários ou consumidores devem ser documentadas quando necessário.
+
+## Checklist antes do merge
+
+Antes de considerar uma alteração pronta para merge, verifique:
+
+- [ ] lint passou localmente ou no CI;
+- [ ] testes diretamente relacionados passaram;
+- [ ] testes de regressão foram adicionados para correções de bugs;
+- [ ] build passou quando aplicável;
+- [ ] verificações de tipo passaram quando aplicável;
+- [ ] não há secrets no diff;
+- [ ] não há arquivos temporários ou artefatos indevidos;
+- [ ] não há mudanças não relacionadas;
+- [ ] contratos públicos foram avaliados;
+- [ ] migrations foram avaliadas;
+- [ ] documentação foi atualizada quando necessário;
+- [ ] riscos e limitações foram descritos;
+- [ ] o pipeline não foi enfraquecido;
+- [ ] as regras de branch e aprovação foram respeitadas.
+
+Não marque um item como concluído sem evidência.
+
+## Estratégia para features
+
+Para alterações que envolvam múltiplas etapas:
+
+1. implemente a menor fatia vertical funcional;
+2. adicione ou atualize testes;
+3. execute as validações relevantes;
+4. revise o diff;
+5. integre a próxima etapa;
+6. repita o ciclo;
+7. mantenha cada etapa pequena e verificável.
+
+Evite enviar um conjunto grande de alterações não validadas de uma só vez.
+
+## Alterações no pipeline de produção
+
+Para mudanças que afetem produção:
+
+- descreva o risco em linguagem simples;
+- identifique ambientes afetados;
+- apresente estratégia incremental;
+- verifique necessidade de aprovação manual;
+- defina plano de rollback;
+- valide em staging quando possível;
+- não execute deploy automaticamente;
+- preserve logs e auditoria;
+- confirme o comportamento de falha.
+
+Siga também:
+
+```text
+020-core-change-boundaries.mdc
+030-core-decision-making.mdc
+```
+
+## Secrets no CI/CD
+
+- Não inclua secrets diretamente em YAML, scripts ou comandos.
+- Use o mecanismo de secrets da plataforma.
+- Não imprima secrets nos logs.
+- Não passe secrets em argumentos que possam aparecer no histórico.
+- Restrinja secrets a branches, ambientes e jobs necessários.
+- Não exponha secrets em artefatos.
+- Não permita que código de Pull Request não confiável acesse secrets de produção.
+- Revogue e rotacione secrets expostos.
+
+## Falhas no pipeline
+
+Quando o pipeline falhar:
+
+1. identifique a etapa que falhou;
+2. preserve a mensagem de erro sem divulgar secrets;
+3. reproduza localmente quando possível;
+4. diferencie falha de código, ambiente, dependência e configuração;
+5. corrija a causa;
+6. execute novamente as verificações;
+7. não desative a etapa apenas para obter sucesso.
+
+Se a falha for intermitente:
+
+- registre a intermitência;
+- procure dependências de tempo, rede, concorrência ou estado;
+- não aumente timeouts sem entender a causa;
+- não marque a etapa como opcional sem avaliar o risco.
+
+## Critério de conclusão
+
+Considere uma alteração de CI/CD ou Pull Request concluída quando:
+
+- o escopo estiver claro;
+- os arquivos afetados tiverem sido revisados;
+- as etapas existentes estiverem preservadas;
+- scripts estiverem alinhados às ferramentas do projeto;
+- testes e verificações relevantes tiverem sido executados;
+- secrets não estiverem no diff ou nos logs;
+- riscos de segurança e deploy tiverem sido avaliados;
+- documentação e contratos tiverem sido atualizados quando necessário;
+- aprovação tiver sido obtida para mudanças protegidas;
+- o plano de rollback estiver definido quando aplicável.

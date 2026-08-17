@@ -1,0 +1,255 @@
+---
+description: Tomada de decisões — quando perguntar, assumir ou apresentar alternativas
+globs:
+  - '**/*'
+alwaysApply: true
+---
+
+# Tomada de decisões e suposições
+
+## Objetivo
+
+Evitar que o agente invente regras de negócio, comportamentos não documentados ou decisões com impacto relevante.
+
+O agente deve distinguir entre:
+
+- fatos confirmados pelo usuário, código ou documentação;
+- padrões já estabelecidos no projeto;
+- boas práticas técnicas;
+- suposições necessárias para continuar;
+- decisões que exigem confirmação.
+
+Quando houver risco de interpretar incorretamente o requisito, priorize a segurança e a clareza em vez de avançar silenciosamente.
+
+## Princípios de decisão
+
+- Prefira evidências do projeto a suposições.
+- Siga padrões existentes quando forem consistentes e aplicáveis.
+- Não transforme uma preferência técnica em requisito de produto.
+- Não invente regras de negócio para preencher lacunas.
+- Não escolha silenciosamente entre interpretações que produzam comportamentos diferentes.
+- Prefira a menor decisão reversível quando o impacto for baixo.
+- Solicite confirmação quando a decisão for irreversível, pública, sensível ou orientada ao produto.
+- Registre suposições relevantes na resposta final.
+- Não use comentários no código para esconder uma decisão de negócio que ainda precisa ser definida.
+
+## Sempre pedir esclarecimento antes de prosseguir
+
+Faça uma pergunta objetiva antes de implementar quando a tarefa envolver:
+
+### Regras de negócio não definidas
+
+- cálculos, limites ou critérios que não aparecem no código ou na documentação;
+- transições de estado sem comportamento especificado;
+- regras de elegibilidade, cobrança, aprovação ou cancelamento;
+- tratamento de casos excepcionais com impacto funcional;
+- prioridade entre regras conflitantes.
+
+### Comportamento ambíguo
+
+- duas ou mais interpretações válidas de uma API;
+- comportamento de UX sem requisito claro;
+- tratamento de valores ausentes, duplicados ou inválidos;
+- escolha entre falhar, ignorar, substituir ou solicitar confirmação;
+- mudanças que afetam clientes ou integrações existentes.
+
+### Operações destrutivas ou irreversíveis
+
+- exclusão em massa;
+- remoção de dados;
+- `DROP TABLE`, `TRUNCATE` ou migrations destrutivas;
+- alteração de migrations já aplicadas;
+- remoção de endpoints ou arquivos críticos;
+- `git reset --hard`;
+- `git clean`;
+- `git push --force`;
+- alterações diretas em produção.
+
+Essas situações também estão sujeitas à rule `020-core-change-boundaries.mdc`.
+
+### Segurança e privacidade
+
+- defaults de autenticação ou autorização;
+- permissões, papéis e escopos;
+- tratamento de PII ou dados sensíveis;
+- retenção, anonimização ou exclusão de dados;
+- mudanças em tokens, sessões ou recuperação de conta;
+- logs que possam conter informações sensíveis;
+- decisões que possam permitir acesso indevido.
+
+### Decisões de produto
+
+- nome, fluxo ou comportamento sem requisito definido;
+- alteração de experiência do usuário;
+- mudança de política comercial;
+- mudança de contrato público;
+- compatibilidade com comportamento legado;
+- escolha que afete usuários, clientes ou integrações.
+
+## Quando uma suposição é aceitável
+
+Uma suposição pode ser feita quando:
+
+- o projeto possui um padrão claro e consistente para o mesmo caso;
+- a decisão é técnica e não altera o comportamento do produto;
+- a mudança é pequena, reversível e de baixo risco;
+- a alternativa escolhida preserva compatibilidade;
+- a suposição pode ser validada pelos testes ou pelo código existente;
+- o usuário forneceu contexto suficiente para inferir a intenção.
+
+Exemplos:
+
+- seguir o padrão de nomenclatura usado no mesmo módulo;
+- usar a biblioteca de validação já adotada no projeto;
+- aplicar uma query parametrizada;
+- colocar um teste no diretório já utilizado por funcionalidades semelhantes;
+- reutilizar o formato de erro existente na mesma API;
+- seguir o padrão de formatação configurado pelo repositório.
+
+Não considere aceitável uma suposição apenas porque ela é comum em outros projetos.
+
+## Quando não assumir
+
+Não assuma silenciosamente:
+
+- regras de negócio;
+- permissões;
+- comportamento de cobrança;
+- retenção ou exclusão de dados;
+- contratos de API;
+- comportamento de clientes externos;
+- decisões de UX;
+- requisitos regulatórios;
+- defaults de segurança;
+- mudanças incompatíveis;
+- destino de dados sensíveis;
+- comportamento em produção.
+
+## Como fazer uma pergunta
+
+Quando precisar esclarecer algo:
+
+- faça uma única pergunta objetiva quando possível;
+- apresente somente as opções relevantes;
+- explique brevemente por que a decisão importa;
+- indique a alternativa recomendada;
+- evite perguntas sobre detalhes que podem ser inferidos com segurança;
+- não faça uma lista extensa de perguntas independentes de uma só vez.
+
+Exemplo:
+
+```text
+Ao receber um token expirado, a API deve retornar `401` ou renovar automaticamente a sessão?
+
+Recomendo `401`, porque esse é o comportamento usado nos demais endpoints e evita renovar uma credencial inválida silenciosamente.
+```
+
+## Formato para suposições
+
+Quando uma suposição de baixo risco for necessária, informe-a claramente:
+
+> **Suposição:** seguirei o padrão de retorno de erros usado nos demais endpoints deste módulo. Se este endpoint tiver um contrato diferente, a implementação deverá ser ajustada.
+
+A suposição deve conter:
+
+- o que foi assumido;
+- qual evidência sustenta a decisão;
+- qual impacto ela possui;
+- como pode ser corrigida;
+- se precisa de confirmação posterior.
+
+Não use o rótulo “suposição” para decisões que, na verdade, exigem aprovação.
+
+## Apresentação de alternativas
+
+Quando houver duas ou mais opções tecnicamente válidas e a escolha tiver impacto relevante:
+
+1. descreva as opções;
+2. apresente os principais benefícios e custos;
+3. informe os riscos;
+4. recomende uma alternativa;
+5. peça confirmação quando a decisão não puder ser revertida facilmente.
+
+Exemplo:
+
+```text
+Existem duas opções:
+
+1. Manter compatibilidade com os dois formatos.
+   - Menor risco para clientes existentes.
+   - Aumenta temporariamente a complexidade.
+
+2. Substituir o formato antigo imediatamente.
+   - Implementação mais simples.
+   - Pode quebrar integrações existentes.
+
+Recomendo a opção 1, seguida de uma janela de depreciação.
+```
+
+## Hierarquia para resolver incertezas
+
+Ao avaliar uma decisão, consulte nesta ordem:
+
+1. instrução explícita do usuário;
+2. requisitos de segurança;
+3. especificação aprovada;
+4. contrato público vigente;
+5. rules específicas;
+6. código e testes existentes;
+7. decisões arquiteturais registradas;
+8. documentação geral;
+9. padrões técnicos do projeto;
+10. boa prática geral.
+
+Se fontes relevantes conflitarem:
+
+- não escolha silenciosamente;
+- informe o conflito;
+- identifique a fonte mais confiável;
+- peça esclarecimento quando o impacto for relevante.
+
+## Escalonamento
+
+Se a tarefa ficar bloqueada depois de uma rodada objetiva de esclarecimento:
+
+1. informe o que foi entendido;
+2. descreva a informação que permanece ausente;
+3. proponha a menor implementação reversível;
+4. destaque os pontos que ficaram em aberto;
+5. peça confirmação antes de tomar uma decisão de produto, segurança ou contrato.
+
+Não faça várias rodadas de perguntas sobre detalhes de baixo impacto.
+
+## Implementação provisória
+
+Uma implementação provisória só é aceitável quando:
+
+- o comportamento é reversível;
+- não afeta dados de produção;
+- não altera contratos públicos;
+- não cria risco de segurança;
+- está claramente identificada;
+- possui um caminho definido para substituição ou validação.
+
+Quando necessário, registre a pendência em:
+
+- tarefa;
+- issue;
+- especificação;
+- ADR;
+- comentário temporário vinculado a uma referência rastreável.
+
+Evite TODOs genéricos sem contexto, responsável ou critério de conclusão.
+
+## Resposta final
+
+Ao concluir uma tarefa, informe:
+
+- decisões tomadas;
+- suposições utilizadas;
+- evidências que sustentaram as escolhas;
+- alternativas descartadas, quando relevantes;
+- pontos que ainda precisam de confirmação;
+- testes e verificações executados.
+
+Não apresente uma decisão como requisito confirmado quando ela foi apenas inferida.

@@ -1,0 +1,462 @@
+---
+description: Convenções para criar, revisar e manter rules do Cursor
+globs:
+  - '.cursor/**/*'
+alwaysApply: false
+---
+
+# Criação e manutenção de rules
+
+## Objetivo
+
+Manter as rules do Cursor organizadas, consistentes, específicas e fáceis de manter conforme o projeto cresce.
+
+Esta rule deve ser usada quando a tarefa envolver:
+
+- criação de uma nova rule;
+- alteração de uma rule existente;
+- revisão de regras duplicadas ou conflitantes;
+- reorganização do diretório `.cursor/`;
+- atualização do README de configuração;
+- definição de escopo, `globs` ou `alwaysApply`.
+
+## Local das rules
+
+As rules do projeto devem ficar em:
+
+```text
+.cursor/rules/
+```
+
+Cada rule deve ser um arquivo Markdown com extensão `.mdc`.
+
+Estrutura padrão:
+
+```text
+.cursor/
+├── README.md
+└── rules/
+    ├── 010-core-project-principles.mdc
+    ├── 100-ai-agent-behavior.mdc
+    ├── 200-architecture-clean-architecture-solid.mdc
+    └── 400-meta-rule-authoring.mdc
+```
+
+Não crie rules fora de `.cursor/rules/` sem uma necessidade documentada.
+
+## Quando criar uma nova rule
+
+Crie uma nova rule quando:
+
+- um padrão se repete no projeto;
+- o agente comete o mesmo erro várias vezes;
+- existe uma política que deve ser aplicada consistentemente;
+- uma área possui instruções específicas demais para uma rule global;
+- uma decisão precisa ser preservada e reutilizada;
+- uma equipe precisa compartilhar a mesma orientação.
+
+Não crie uma rule apenas porque uma instrução foi usada uma única vez.
+
+Antes de criar uma rule:
+
+1. identifique claramente o problema;
+2. verifique se uma rule existente já cobre o assunto;
+3. confirme se o padrão é recorrente;
+4. defina a categoria e o escopo;
+5. determine se a rule deve ser global, automática ou manual;
+6. avalie o custo de adicionar mais contexto às respostas do agente.
+
+## Quando não criar uma nova rule
+
+Não crie uma rule para:
+
+- uma preferência pessoal que não pertence ao projeto;
+- uma instrução específica de uma única tarefa;
+- uma configuração já garantida por linter, formatter, compilador ou CI;
+- documentação extensa do domínio;
+- comportamento que ainda não foi validado pela equipe;
+- repetir uma regra já existente;
+- corrigir temporariamente um erro que deveria ser resolvido no código ou na configuração.
+
+Prefira a fonte de verdade adequada:
+
+- requisitos: `docs/specs/`;
+- arquitetura: documentação ou ADRs;
+- formatação: formatter;
+- estilo estático: linter;
+- tipos: compilador;
+- qualidade: CI;
+- comportamento do agente: `.cursor/rules/`.
+
+## Princípio de responsabilidade única
+
+Cada rule deve ter uma responsabilidade principal.
+
+Uma rule pode conter várias orientações relacionadas, mas deve ser dividida quando tratar de assuntos independentes.
+
+Exemplos adequados:
+
+```text
+100-ai-agent-behavior.mdc
+110-ai-context-engineering.mdc
+120-ai-agent-workflows.mdc
+```
+
+Exemplos que devem ser evitados:
+
+```text
+100-everything-about-the-project.mdc
+```
+
+Não duplique uma orientação em várias rules sem necessidade.
+
+Quando uma rule precisar de conteúdo de outra:
+
+- referencie o nome da rule;
+- evite copiar o texto inteiro;
+- mantenha a responsabilidade de cada arquivo clara.
+
+## Convenção de nomes
+
+Use o formato:
+
+```text
+NNN-categoria-assunto.mdc
+```
+
+Exemplos:
+
+```text
+010-core-project-principles.mdc
+100-ai-agent-behavior.mdc
+200-architecture-clean-architecture-solid.mdc
+400-meta-rule-authoring.mdc
+```
+
+Regras de nomenclatura:
+
+- use letras minúsculas;
+- use `kebab-case`;
+- seja específico;
+- evite nomes genéricos como `misc`, `general` ou `stuff`;
+- use uma descrição curta, mas suficiente para identificar o assunto;
+- mantenha o nome em inglês para facilitar navegação técnica;
+- escreva o conteúdo da rule em português, conforme a convenção deste projeto.
+
+## Numeração
+
+Use numeração global por categoria:
+
+|     Faixa | Categoria      |
+| --------: | -------------- |
+| `000–099` | `core`         |
+| `100–199` | `ai`           |
+| `200–299` | `architecture` |
+| `300–399` | `backend`      |
+| `400–499` | `meta`         |
+| `500–599` | `quality`      |
+| `600–699` | `security`     |
+| `700–799` | `frontend`     |
+| `800–899` | `devops`       |
+| `900–999` | `operations`   |
+
+Use intervalos de 10:
+
+```text
+010, 020, 030
+100, 110, 120
+200, 210, 220
+```
+
+Os intervalos permitem inserir novas rules sem precisar renumerar todas as seguintes.
+
+A numeração organiza os arquivos, mas não deve ser tratada como o único mecanismo de prioridade.
+
+## Frontmatter
+
+Toda rule deve começar com frontmatter válido:
+
+```yaml
+---
+description: Descrição curta da finalidade da rule
+globs:
+  - 'src/**/*.ts'
+alwaysApply: false
+---
+```
+
+### `description`
+
+A descrição deve:
+
+- explicar a finalidade da rule em uma linha;
+- ser específica;
+- ajudar o agente a decidir quando a rule é relevante;
+- evitar frases genéricas.
+
+Exemplo:
+
+```yaml
+description: Convenções de segurança para APIs públicas
+```
+
+Evite:
+
+```yaml
+description: Regras importantes
+```
+
+### `globs`
+
+Use `globs` para restringir a aplicação aos arquivos relevantes.
+
+Exemplos:
+
+```yaml
+globs:
+  - 'src/backend/**/*.ts'
+```
+
+```yaml
+globs:
+  - 'src/**/*.tsx'
+  - 'tests/**/*.tsx'
+```
+
+```yaml
+globs:
+  - '.cursor/**/*'
+```
+
+Use `"**/*"` somente quando a rule realmente se aplicar a qualquer parte do projeto.
+
+Globs muito amplos aumentam o ruído e podem carregar instruções irrelevantes.
+
+### `alwaysApply`
+
+Use:
+
+```yaml
+alwaysApply: true
+```
+
+somente para rules realmente globais, como:
+
+- princípios fundamentais;
+- segurança crítica;
+- limites de alteração;
+- decisões gerais do agente.
+
+Use:
+
+```yaml
+alwaysApply: false
+```
+
+para rules:
+
+- específicas de uma stack;
+- vinculadas a determinados caminhos;
+- relacionadas a workflows;
+- aplicadas sob demanda;
+- voltadas à criação ou manutenção de rules.
+
+Evite ter muitas rules globais. Como referência, mantenha aproximadamente entre 5 e 12 rules globais, e revise esse número conforme o contexto total.
+
+## Estrutura interna
+
+Use esta estrutura quando fizer sentido:
+
+```md
+# Título
+
+## Objetivo
+
+## Escopo
+
+## Princípios
+
+## Regras
+
+## Exemplos
+
+## Validação
+```
+
+A rule deve priorizar instruções acionáveis.
+
+Prefira:
+
+```md
+- Não importe diretamente a infraestrutura de outro módulo.
+```
+
+A uma formulação vaga:
+
+```md
+- Mantenha uma arquitetura limpa.
+```
+
+## Escrita das instruções
+
+As rules devem:
+
+- usar linguagem direta;
+- conter instruções verificáveis;
+- evitar explicações filosóficas longas;
+- separar obrigação, recomendação e exemplo;
+- explicar exceções importantes;
+- definir o comportamento esperado diante de ambiguidades;
+- usar exemplos positivos e negativos quando isso reduzir interpretações erradas.
+
+Use termos claros:
+
+- **deve:** obrigação;
+- **não deve:** proibição;
+- **prefira:** recomendação;
+- **pode:** opção permitida;
+- **solicite confirmação:** bloqueio necessário.
+
+## Tamanho
+
+Como referência:
+
+- prefira menos de 150 linhas;
+- evite ultrapassar 500 linhas;
+- remova conteúdo redundante;
+- divida rules que tratem de assuntos independentes;
+- prefira precisão a volume.
+
+Uma rule longa não é necessariamente melhor. O agente precisa encontrar e aplicar instruções relevantes rapidamente.
+
+## Exemplos
+
+Inclua exemplos quando:
+
+- o padrão for frequentemente interpretado de forma errada;
+- houver uma diferença importante entre permitido e proibido;
+- a estrutura de pastas precisar ser demonstrada;
+- o formato esperado não for óbvio.
+
+Exemplo:
+
+````md
+### Permitido
+
+```ts
+import { CriarPedido } from '@/modules/pedidos'
+```
+````
+
+### Evitar
+
+```ts
+import { PedidoRepository } from '@/modules/pedidos/infrastructure/repositories'
+```
+
+```
+
+Não inclua exemplos artificiais ou que não correspondam ao código real do projeto.
+
+## Regras globais e contextuais
+
+Antes de definir `alwaysApply: true`, pergunte:
+
+1. A instrução se aplica a todas as tarefas?
+2. Ela é importante mesmo quando o arquivo alterado não tem relação com o assunto?
+3. O custo de carregá-la sempre é justificável?
+4. Ela poderia ser ativada por `globs`, descrição ou uso manual?
+
+Se a resposta for “não” para alguma dessas perguntas, prefira `alwaysApply: false`.
+
+## Verificação de sobreposição
+
+Antes de criar ou alterar uma rule:
+
+- pesquise termos e instruções semelhantes;
+- verifique rules da mesma categoria;
+- identifique conflitos de `globs`;
+- procure regras repetidas no README;
+- confira se a instrução já existe em uma ferramenta automática;
+- determine qual arquivo será a fonte principal.
+
+Se houver sobreposição:
+
+- estenda a rule existente quando o assunto for o mesmo;
+- divida a rule quando houver responsabilidades independentes;
+- remova a duplicação;
+- documente a relação entre as rules quando necessário.
+
+## Conflitos entre rules
+
+Quando duas rules conflitarem:
+
+1. identifique as instruções conflitantes;
+2. determine qual é mais específica;
+3. verifique requisitos de segurança;
+4. confira a instrução explícita do usuário;
+5. atualize as rules para eliminar a ambiguidade;
+6. registre a decisão no README quando ela afetar a organização geral.
+
+Não resolva conflitos apenas aumentando a numeração dos arquivos.
+
+## Validação de uma nova rule
+
+Após criar ou revisar uma rule:
+
+1. verifique se o frontmatter está válido;
+2. confirme se o nome segue a convenção;
+3. confirme se a numeração está disponível;
+4. revise os `globs`;
+5. avalie se `alwaysApply` é apropriado;
+6. procure duplicações;
+7. procure instruções contraditórias;
+8. confirme se os exemplos correspondem ao projeto;
+9. verifique se a rule possui uma responsabilidade clara;
+10. atualize o README;
+11. apresente o arquivo completo para revisão;
+12. explique o caminho, o escopo e o comportamento esperado.
+
+Não marque uma rule como definitiva sem revisar sua aplicação real em uma tarefa.
+
+## Atualização do README
+
+Ao criar uma nova rule, atualize o `.cursor/README.md` com:
+
+- nome do arquivo;
+- categoria;
+- finalidade;
+- escopo;
+- principais responsabilidades;
+- status, quando o projeto utilizar status;
+- relação com rules próximas, se necessário.
+
+Mantenha o README como índice da configuração, não como cópia integral das rules.
+
+## Alterações em rules existentes
+
+Antes de editar uma rule existente:
+
+- entenda sua finalidade;
+- verifique quais outras rules dependem dela;
+- preserve instruções que ainda são válidas;
+- remova regras obsoletas em vez de apenas adicionar exceções;
+- confira se a alteração muda o escopo;
+- atualize a descrição ou o README quando necessário.
+
+Não altere uma rule global para resolver um problema específico de um único módulo. Nesse caso, crie ou ajuste uma rule contextual.
+
+## Aplicação a esta configuração
+
+Neste projeto:
+
+- as rules ficam diretamente em `.cursor/rules/`;
+- os nomes usam numeração global;
+- os arquivos usam `kebab-case`;
+- os nomes são mantidos em inglês;
+- o conteúdo das rules é escrito em português;
+- o README fica em `.cursor/README.md`;
+- templates ficam em `.cursor/templates/`;
+- uma rule deve possuir uma responsabilidade principal;
+- rules globais devem ser mantidas em quantidade controlada.
+```

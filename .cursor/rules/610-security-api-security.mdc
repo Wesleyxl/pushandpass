@@ -1,0 +1,513 @@
+---
+description: Segurança de APIs — endpoints, autenticação, autorização, CORS, headers, rate limiting e webhooks
+globs:
+  - '**/api/**'
+  - '**/routes/**'
+  - '**/middleware/**'
+  - '**/controllers/**'
+  - '**/handlers/**'
+  - '**/functions/**'
+  - '**/webhooks/**'
+alwaysApply: false
+---
+
+# Segurança de APIs
+
+## Objetivo
+
+Complementar `600-security-fundamentals.mdc` com controles específicos para APIs HTTP, rotas, middleware, controllers, handlers e webhooks.
+
+Aplique estas orientações ao criar ou alterar:
+
+- endpoints;
+- rotas;
+- controllers;
+- handlers;
+- middleware;
+- autenticação e autorização HTTP;
+- respostas de API;
+- webhooks;
+- CORS;
+- headers;
+- rate limiting;
+- operações de criação ou mutação de dados.
+
+As regras de segurança específicas do projeto, da infraestrutura e dos provedores utilizados têm prioridade quando forem mais restritivas.
+
+## Princípios gerais
+
+- Cada endpoint deve ter um nível de exposição definido.
+- Autenticação não substitui autorização.
+- Valide entradas no limite da API.
+- Retorne somente os dados necessários para o consumidor.
+- Não exponha detalhes internos da aplicação.
+- Proteja operações sensíveis contra abuso e repetição.
+- Preserve contratos públicos já utilizados.
+- Registre eventos de segurança sem armazenar dados sensíveis desnecessários.
+- Reutilize middleware, guards, schemas e mecanismos existentes.
+- Não crie um padrão de segurança diferente para uma rota sem justificativa.
+
+## Classificação de endpoints
+
+Antes de criar ou alterar uma rota, classifique-a:
+
+| Tipo de endpoint           | Controles mínimos                                                                  |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| Público de leitura         | Validação, rate limiting e resposta mínima                                         |
+| Público de escrita         | Validação rigorosa, rate limiting, proteção contra abuso e controle de duplicidade |
+| Autenticado                | Token ou sessão válidos e autorização por recurso                                  |
+| Administrativo             | Verificação de papel ou política, auditoria e rate limiting mais restritivo        |
+| Webhook                    | Verificação de assinatura, idempotência e proteção contra replay                   |
+| Interno entre serviços     | Autenticação de serviço, autorização, validação e controle de rede                 |
+| Operacional ou diagnóstico | Acesso restrito, resposta mínima e auditoria                                       |
+
+Não classifique um endpoint como público apenas porque ele não exige login. Dados públicos também podem precisar de validação, rate limiting e proteção contra enumeração.
+
+## Autenticação
+
+Para endpoints protegidos:
+
+- reutilize o middleware ou guard de autenticação existente;
+- valide token, sessão ou credencial no servidor;
+- verifique expiração e demais claims relevantes;
+- não aceite identidade enviada livremente no corpo da requisição;
+- extraia o usuário ou serviço do contexto autenticado;
+- preserve revogação, logout e expiração;
+- trate credenciais inválidas sem expor detalhes internos;
+- não registre tokens completos ou credenciais.
+
+Não implemente autenticação diretamente em cada controller.
+
+Evite respostas que revelem informações úteis para descobrir se uma credencial, conta ou e-mail é válido.
+
+## Autorização
+
+Depois de autenticar, valide se o ator pode executar a operação.
+
+Verifique, quando aplicável:
+
+- papel;
+- escopo;
+- tenant;
+- propriedade do recurso;
+- estado do recurso;
+- permissões específicas da ação;
+- restrições administrativas.
+
+Nunca confie em valores enviados pelo cliente, como:
+
+```json
+{
+  "isAdmin": true,
+  "role": "admin"
+}
+```
+
+A autorização deve ser determinada por dados confiáveis no servidor.
+
+Não use apenas o frontend para esconder botões ou rotas administrativas. A proteção real deve estar na API.
+
+## Validação de requisições
+
+Valide na entrada:
+
+- corpo;
+- query parameters;
+- parâmetros de rota;
+- headers relevantes;
+- content type;
+- tamanho da requisição;
+- paginação;
+- filtros;
+- ordenação;
+- uploads;
+- payloads de webhook.
+
+Use o mecanismo de validação adotado pelo projeto.
+
+Verifique:
+
+- tipos;
+- formatos;
+- limites;
+- campos obrigatórios;
+- valores permitidos;
+- relações entre campos;
+- campos desconhecidos, conforme o padrão do projeto;
+- coerência com o usuário autenticado.
+
+Não confie em validação feita apenas no frontend.
+
+## Respostas mínimas
+
+Retorne somente os campos necessários para o consumidor.
+
+Evite expor:
+
+- hashes de senha;
+- tokens;
+- secrets;
+- documentos pessoais;
+- e-mails quando não forem necessários;
+- dados internos de auditoria;
+- caminhos do sistema;
+- nomes de tabelas;
+- detalhes de infraestrutura;
+- informações que revelem a estrutura interna dos IDs;
+- campos administrativos ou internos;
+- dados de outros usuários.
+
+Antes de reutilizar diretamente uma entidade ou modelo de banco como resposta, crie ou verifique um DTO de saída apropriado.
+
+Listagens públicas devem:
+
+- limitar o número de registros;
+- aplicar paginação;
+- retornar campos mínimos;
+- evitar permitir enumeração de recursos;
+- respeitar filtros e limites seguros.
+
+## Erros e códigos HTTP
+
+Use códigos HTTP e formatos de erro consistentes com o contrato existente.
+
+Não exponha:
+
+- stack trace;
+- erro SQL;
+- caminho de arquivo;
+- nome de tabela;
+- nome de classe interna;
+- configuração;
+- detalhes de serviço externo;
+- credenciais ou tokens.
+
+As mensagens públicas devem ser úteis, mas não revelar informações sensíveis.
+
+Quando o projeto possuir códigos de erro públicos:
+
+- preserve os códigos existentes;
+- não altere sua semântica silenciosamente;
+- atualize testes de contrato;
+- avalie impacto nos consumidores.
+
+Evite diferenças desnecessárias de resposta que permitam descobrir se um usuário, e-mail ou recurso existe.
+
+## CORS
+
+Ao configurar CORS:
+
+- permita somente origens necessárias;
+- use uma lista explícita de origens autorizadas;
+- alinhe as origens aos ambientes reais do projeto;
+- não use `*` junto com credenciais;
+- restrinja métodos e headers quando possível;
+- avalie preflight e cache;
+- não permita origens refletidas sem validação;
+- diferencie desenvolvimento, staging e produção.
+
+Nunca use:
+
+```text
+Access-Control-Allow-Origin: *
+```
+
+com credenciais, cookies ou headers de autenticação.
+
+Não adicione uma origem permanente apenas para testar localmente sem avaliar o ambiente afetado.
+
+## Headers de segurança
+
+Quando a aplicação controlar a camada HTTP, avalie a configuração de:
+
+```text
+Strict-Transport-Security
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Content-Security-Policy
+Referrer-Policy
+Permissions-Policy
+```
+
+Use `Content-Security-Policy` e `frame-ancestors` conforme o tipo de aplicação.
+
+Não adicione ou remova headers sem verificar:
+
+- compatibilidade com frontend;
+- comportamento de iframes;
+- integrações;
+- ambientes de desenvolvimento;
+- exigências de proxy ou CDN;
+- configuração já existente.
+
+Em produção, não desative validação TLS ou mecanismos de proteção para contornar problemas de integração.
+
+## Rate limiting
+
+Avalie rate limiting para endpoints:
+
+- públicos;
+- de autenticação;
+- de recuperação de senha;
+- de envio de códigos;
+- administrativos;
+- de criação ou mutação;
+- que executam operações caras;
+- que fazem consultas amplas;
+- que recebem uploads;
+- que podem ser usados para enumeração.
+
+É obrigatório avaliar limites para:
+
+```text
+POST /auth/login
+POST /auth/forgot-password
+POST /auth/register
+```
+
+e para endpoints administrativos ou de mutação sensível.
+
+Ao aplicar rate limiting:
+
+- escolha uma chave adequada, como IP, usuário, token ou combinação;
+- considere usuários autenticados e não autenticados;
+- defina limites compatíveis com o caso de uso;
+- retorne `429 Too Many Requests` quando aplicável;
+- inclua `Retry-After` quando o projeto suportar;
+- evite revelar informações que permitam contornar o limite;
+- monitore falsos positivos e impacto em usuários legítimos.
+
+Não adicione limites arbitrários que quebrem integrações sem avaliar o tráfego existente.
+
+## Idempotência
+
+Proteja operações que podem ser repetidas por retry, timeout ou duplicidade de requisição.
+
+Considere idempotência especialmente para:
+
+- pagamentos;
+- criação de pedidos;
+- reservas;
+- transferências;
+- envio de mensagens;
+- webhooks;
+- operações que geram efeitos externos.
+
+Quando o projeto utilizar essa estratégia:
+
+- aceite um header `Idempotency-Key`;
+- valide formato e tamanho da chave;
+- associe a chave ao usuário, cliente ou contexto correto;
+- armazene o resultado necessário;
+- trate repetição de forma consistente;
+- evite executar novamente uma operação já concluída;
+- defina o comportamento quando a mesma chave for reutilizada com payload diferente.
+
+Não adicione idempotência parcialmente. O fluxo precisa tratar armazenamento, concorrência, expiração e resposta repetida.
+
+## Webhooks
+
+Antes de processar um webhook:
+
+- valide a assinatura;
+- use o segredo armazenado com segurança;
+- verifique timestamp ou janela contra replay quando o provedor suportar;
+- preserve o corpo bruto quando a assinatura depender dele;
+- valide o formato do payload;
+- aplique idempotência;
+- registre um identificador de correlação;
+- responda conforme o contrato do provedor;
+- evite processamentos longos dentro da requisição;
+- processe de forma assíncrona quando apropriado;
+- trate retries e duplicidades.
+
+A assinatura deve ser verificada antes de confiar no conteúdo do payload.
+
+Não aceite um campo `verified: true` enviado pelo próprio webhook como prova de autenticidade.
+
+Se for necessário armazenar o payload bruto para auditoria:
+
+- proteja o acesso;
+- redija dados sensíveis nos logs;
+- defina retenção;
+- evite replicá-lo em respostas;
+- siga a política de proteção de dados do projeto.
+
+## Webhooks e falhas
+
+O processamento deve distinguir:
+
+- assinatura inválida;
+- payload inválido;
+- evento duplicado;
+- evento já processado;
+- falha temporária;
+- falha permanente.
+
+Não retorne sempre sucesso para evitar retries sem entender o impacto. Siga o contrato do provedor e a estratégia de processamento do projeto.
+
+## Paginação, filtros e ordenação
+
+Para endpoints de listagem:
+
+- defina limites máximos;
+- valide `limit`, `offset` ou cursor;
+- evite consultas ilimitadas;
+- valide campos de ordenação com uma lista permitida;
+- não concatene diretamente parâmetros em SQL;
+- considere autorização por registro;
+- evite respostas que permitam enumeração;
+- avalie custo de filtros complexos.
+
+Não permita que o cliente escolha livremente nomes de colunas, tabelas ou expressões de consulta.
+
+## Métodos HTTP e efeitos colaterais
+
+Use métodos HTTP e semântica compatíveis com o contrato do projeto.
+
+Avalie:
+
+- se `GET` é realmente somente leitura;
+- se retries podem repetir efeitos;
+- se `PUT` ou `PATCH` são idempotentes conforme o contrato;
+- se `DELETE` possui proteção adequada;
+- se operações sensíveis exigem confirmação ou estado intermediário.
+
+Não esconda mutações em endpoints de leitura.
+
+## Uploads e conteúdo recebido
+
+Para endpoints que recebem arquivos:
+
+- limite tamanho e quantidade;
+- valide tipo real;
+- restrinja extensões;
+- não confie somente no MIME enviado pelo cliente;
+- gere nomes seguros;
+- evite disponibilizar arquivos diretamente sem controle;
+- proteja contra path traversal;
+- não execute conteúdo enviado;
+- analise malware quando o risco justificar;
+- aplique rate limiting;
+- defina retenção e limpeza.
+
+## Auditoria
+
+Registre eventos relevantes, principalmente em endpoints administrativos e operações sensíveis:
+
+- alteração de permissões;
+- login e falhas de login;
+- recuperação de conta;
+- alterações de dados críticos;
+- criação ou revogação de credenciais;
+- ações administrativas;
+- processamento de webhooks;
+- falhas de autorização.
+
+Os registros devem conter contexto suficiente para investigação, mas não devem incluir:
+
+- senhas;
+- tokens completos;
+- secrets;
+- dados pessoais desnecessários;
+- payloads sensíveis completos.
+
+Não considere o log de aplicação como substituto de uma trilha de auditoria quando o projeto exigir auditoria formal.
+
+## Operações administrativas
+
+Para endpoints administrativos:
+
+- exija autenticação forte conforme a política do projeto;
+- valide papel e escopo;
+- aplique autorização por ação;
+- use rate limiting mais restritivo;
+- registre auditoria;
+- retorne dados mínimos;
+- evite operações em massa sem confirmação ou proteção;
+- considere paginação, dry-run e preview;
+- proteja contra execução acidental em produção.
+
+Não crie um endpoint administrativo apenas protegido por uma flag enviada pelo cliente.
+
+## Testes obrigatórios para APIs sensíveis
+
+Quando aplicável, adicione testes para:
+
+- acesso sem autenticação;
+- token inválido ou expirado;
+- usuário sem permissão;
+- acesso a recurso de outro usuário;
+- entrada inválida;
+- campos desconhecidos;
+- resposta sem dados sensíveis;
+- rate limiting;
+- CORS;
+- assinatura inválida de webhook;
+- webhook duplicado;
+- idempotência;
+- erros internos sem vazamento de detalhes;
+- limites de paginação;
+- filtros e ordenação permitidos.
+
+Os testes devem validar o comportamento público da API, não detalhes irrelevantes da implementação.
+
+## Antes de criar ou alterar um endpoint
+
+Verifique:
+
+1. o endpoint é público, autenticado, administrativo ou interno?
+2. qual é o contrato de entrada e saída?
+3. quais dados podem ser retornados?
+4. qual autenticação será usada?
+5. como a autorização será aplicada?
+6. há risco de enumeração?
+7. é necessário rate limiting?
+8. a operação precisa ser idempotente?
+9. há risco de repetição ou replay?
+10. existe impacto em CORS ou headers?
+11. há auditoria necessária?
+12. quais testes devem ser adicionados?
+13. a alteração quebra clientes existentes?
+14. a mudança exige aprovação explícita?
+
+## Alterações sensíveis
+
+Solicite aprovação antes de:
+
+- tornar um endpoint público;
+- remover autenticação ou autorização;
+- alterar políticas de CORS;
+- alterar rate limiting de autenticação;
+- mudar contratos públicos;
+- adicionar operações administrativas;
+- aceitar uploads;
+- alterar verificação de webhooks;
+- expor novos campos sensíveis;
+- alterar headers de segurança de produção;
+- modificar mecanismos de sessão, token ou idempotência.
+
+Siga também:
+
+```text
+020-core-change-boundaries.mdc
+030-core-decision-making.mdc
+600-security-fundamentals.mdc
+500-quality-testing-policy.mdc
+```
+
+## Critério de conclusão
+
+Considere uma alteração de API concluída quando:
+
+- autenticação e autorização tiverem sido avaliadas;
+- entradas estiverem validadas;
+- respostas não expuserem dados indevidos;
+- erros não vazarem detalhes internos;
+- rate limiting tiver sido considerado;
+- idempotência tiver sido avaliada;
+- webhooks tiverem assinatura e proteção contra replay quando aplicável;
+- CORS e headers estiverem compatíveis;
+- testes relevantes tiverem sido executados;
+- contratos e documentação tiverem sido atualizados quando necessário;
+- riscos e limitações tiverem sido informados.

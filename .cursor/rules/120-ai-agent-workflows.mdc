@@ -1,0 +1,231 @@
+---
+description: Fluxos de trabalho do agente — explorar, planejar, implementar e verificar
+globs:
+  - '**/*'
+alwaysApply: false
+---
+
+# Fluxos de trabalho do agente
+
+## Objetivo
+
+Definir procedimentos consistentes para tarefas que envolvam múltiplos arquivos, investigação, mudanças arquiteturais, correções não triviais ou alterações com risco relevante.
+
+Use o fluxo mais simples que seja suficiente para a tarefa. Não transforme uma alteração pequena em um processo burocrático.
+
+## Fluxo padrão: Explorar → Planejar → Implementar → Verificar
+
+### 1. Explorar
+
+Antes de alterar o código:
+
+- entenda o objetivo da tarefa;
+- identifique os arquivos e módulos afetados;
+- leia as rules aplicáveis;
+- procure implementações semelhantes;
+- verifique contratos, tipos, integrações e especificações;
+- localize os testes existentes;
+- identifique riscos, dependências e possíveis efeitos colaterais.
+
+Durante esta etapa:
+
+- priorize leitura e investigação;
+- não altere o código sem necessidade;
+- use evidências do código, dos testes, dos logs e das especificações;
+- não suponha o comportamento de componentes que ainda não foram inspecionados.
+
+Resultado esperado:
+
+- resumo breve do problema;
+- arquivos relevantes;
+- causa provável ou hipótese atual;
+- informações que ainda estão faltando.
+
+### 2. Planejar
+
+Para tarefas não triviais:
+
+- descreva as etapas de implementação;
+- indique os arquivos que serão criados ou alterados;
+- defina como a mudança será validada;
+- registre suposições e riscos;
+- identifique possíveis mudanças incompatíveis;
+- determine se será necessário atualizar testes, documentação, migrations ou configurações.
+
+O plano deve ser proporcional à tarefa:
+
+- correção simples: plano curto ou implícito;
+- alteração em vários arquivos: plano estruturado;
+- alteração arquitetural ou de alto risco: plano detalhado e confirmação antes da execução.
+
+Não peça aprovação para tarefas pequenas, claras e reversíveis.
+
+Peça confirmação antes de executar uma mudança ampla quando:
+
+- houver mais de uma interpretação válida do requisito;
+- a mudança quebrar uma API pública;
+- houver impacto em dados ou produção;
+- a alteração exigir uma decisão de produto;
+- o escopo estiver significativamente maior do que o solicitado.
+
+### 3. Implementar
+
+Durante a implementação:
+
+- faça a menor mudança necessária;
+- implemente uma fatia vertical funcional antes de expandir o escopo;
+- preserve as convenções do projeto;
+- reutilize abstrações existentes quando forem adequadas;
+- mantenha cada alteração relacionada a uma única preocupação;
+- atualize ou crie testes junto com a mudança;
+- não misture refatorações não relacionadas com a implementação da feature;
+- não altere contratos públicos sem avaliar compatibilidade;
+- mantenha alterações intermediárias compreensíveis e verificáveis.
+
+Quando a tarefa for grande, divida a implementação em etapas independentes.
+
+Não considere uma etapa concluída apenas porque o código foi escrito. Ela deve ser validada antes de servir como base para a próxima.
+
+### 4. Verificar
+
+Após implementar:
+
+- execute os testes diretamente relacionados;
+- execute lint, formatação e verificação de tipos quando aplicável;
+- verifique o diff completo;
+- confirme que não existem alterações não relacionadas;
+- valide fluxos de sucesso e de erro;
+- confira impactos em APIs, dados, autenticação e integrações;
+- atualize a documentação ou a especificação quando isso fizer parte do escopo;
+- informe claramente as verificações realizadas e seus resultados.
+
+Não afirme que a mudança está funcionando sem evidências.
+
+Se uma verificação não puder ser executada:
+
+- informe qual verificação foi omitida;
+- explique o motivo;
+- descreva o risco resultante;
+- indique como ela pode ser executada posteriormente.
+
+## Investigação de bugs
+
+Use o fluxo:
+
+```text
+Reproduzir → Isolar → Identificar a causa → Corrigir → Criar teste de regressão → Verificar
+```
+
+### Regras
+
+- tente reproduzir o problema antes de propor a correção;
+- prefira logs, testes falhando, rastreamentos e comportamento observável a suposições;
+- isole a menor parte do sistema que explica o problema;
+- corrija a causa, não apenas o sintoma;
+- adicione um teste que falharia antes da correção;
+- execute os testes relacionados e uma verificação de regressão;
+- não corrija camadas não relacionadas apenas para esconder o sintoma;
+- se não for possível reproduzir, declare isso explicitamente.
+
+## Refatorações
+
+Antes de refatorar:
+
+- confirme quais comportamentos precisam ser preservados;
+- verifique a cobertura de testes existente;
+- identifique consumidores internos e externos;
+- avalie riscos de compatibilidade.
+
+Durante a refatoração:
+
+- separe mudanças mecânicas de mudanças comportamentais;
+- prefira renomear ou mover em uma alteração isolada;
+- não combine uma grande refatoração com uma nova feature;
+- mantenha o comportamento observável quando a tarefa não pedir mudança funcional;
+- atualize imports, testes e documentação relacionados.
+
+Uma sequência preferível é:
+
+```text
+Cobrir comportamento → Refatorar estrutura → Verificar → Alterar comportamento, se necessário
+```
+
+## Mudanças em APIs ou contratos
+
+Antes de alterar uma API pública, banco, evento ou contrato de integração:
+
+- localize os consumidores;
+- verifique a especificação vigente;
+- determine se a mudança é compatível;
+- identifique necessidade de versionamento ou migração;
+- atualize testes de contrato;
+- registre impactos e plano de transição.
+
+Mudanças incompatíveis exigem confirmação explícita antes da implementação, salvo instrução direta e inequívoca do usuário.
+
+## Uso de agentes auxiliares
+
+Use exploração especializada ou agentes auxiliares somente quando isso reduzir a complexidade ou o tempo da investigação.
+
+Casos apropriados:
+
+- codebases grandes ou desconhecidas;
+- investigação independente de frontend e backend;
+- análise paralela de módulos sem dependência entre si;
+- comparação de alternativas técnicas;
+- revisão separada de segurança, testes ou performance.
+
+Ao usar agentes auxiliares:
+
+- dê a cada um um escopo específico;
+- forneça o contexto mínimo necessário;
+- defina um resultado esperado;
+- não permita que múltiplos agentes alterem o mesmo arquivo sem coordenação;
+- sintetize os resultados antes de implementar;
+- não despeje logs brutos de exploração na resposta final;
+- valide as conclusões contra o código real.
+
+## Commits
+
+Quando o usuário solicitar commits:
+
+- mantenha cada commit focado em uma mudança lógica;
+- evite misturar refatoração, feature e correções não relacionadas;
+- verifique o diff antes do commit;
+- execute os testes relevantes;
+- siga a convenção de commits do projeto;
+- não inclua secrets, arquivos temporários ou artefatos gerados indevidamente.
+
+Não faça commit, push, merge ou deploy sem solicitação explícita.
+
+## Critérios de parada
+
+Pause a execução e solicite esclarecimento quando:
+
+- os requisitos contradizerem uma especificação aprovada;
+- houver conflito entre rules sem resolução segura;
+- a correção exigir quebra de uma API pública;
+- a mudança envolver dados de produção;
+- a tarefa exigir uma decisão de produto;
+- houver três tentativas sem sucesso para corrigir o mesmo erro;
+- os testes indicarem um risco não previsto;
+- o escopo real for significativamente maior que o solicitado.
+
+Ao pausar, informe:
+
+1. o que foi descoberto;
+2. o que foi feito;
+3. qual é o bloqueio;
+4. quais opções existem;
+5. qual opção você recomenda e por quê.
+
+## Resultado final da tarefa
+
+Ao concluir, responda de forma proporcional à complexidade da tarefa e inclua, quando aplicável:
+
+- resumo do que foi alterado;
+- arquivos modificados;
+- testes e verificações executados;
+- limitações ou verificações pendentes;
+- riscos conhecidos;
+- decisões que precisam de atenção.

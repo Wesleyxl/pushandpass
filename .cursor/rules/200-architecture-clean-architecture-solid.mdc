@@ -1,0 +1,285 @@
+---
+description: Arquitetura limpa — camadas, direção de dependências e princípios SOLID
+globs:
+  - 'src/**/*'
+  - 'tests/**/*'
+alwaysApply: false
+---
+
+# Arquitetura limpa e SOLID
+
+## Objetivo
+
+Definir princípios estruturais para organizar o código, separar responsabilidades e controlar dependências.
+
+Esta rule é um padrão arquitetural de referência. A arquitetura, a estrutura de pastas e as convenções específicas já adotadas pelo projeto têm prioridade sobre este modelo.
+
+Não reorganize o projeto inteiro apenas para aproximá-lo desta rule. Aplique seus princípios de forma incremental e somente quando forem relevantes para a tarefa.
+
+## Princípios gerais
+
+- Separe regras de negócio de detalhes técnicos.
+- Mantenha dependências apontando para dentro, em direção às regras mais estáveis do sistema.
+- Evite que o domínio dependa de frameworks, bancos de dados, HTTP ou interfaces de usuário.
+- Prefira módulos orientados a funcionalidades quando isso for compatível com a estrutura existente.
+- Não crie abstrações apenas por antecipação.
+- Não introduza camadas, interfaces ou pastas sem uma necessidade concreta.
+- Preserve a estrutura existente quando ela for consistente e adequada ao projeto.
+- Ao propor uma mudança estrutural, explique o motivo, o impacto e as alternativas consideradas.
+
+## Modelo de camadas
+
+O modelo de referência é:
+
+```text
+Apresentação → Aplicação → Domínio ← Infraestrutura
+   HTTP/UI       casos de uso   regras       banco, APIs,
+   e rotas       e orquestração de negócio   filas e adaptadores
+```
+
+A infraestrutura implementa interfaces definidas pelas camadas internas. Ela não deve impor detalhes técnicos às regras de negócio.
+
+## Regra de dependência
+
+As dependências devem apontar das camadas externas para as camadas internas:
+
+```text
+Apresentação → Aplicação → Domínio
+Infraestrutura → Aplicação ou Domínio
+```
+
+O domínio não deve importar componentes de apresentação ou infraestrutura.
+
+A camada de aplicação pode depender do domínio, mas não deve depender diretamente de detalhes específicos de banco, HTTP, filas ou frameworks quando uma abstração for adequada.
+
+A infraestrutura pode conhecer as interfaces internas que implementa e os detalhes dos serviços externos necessários.
+
+## Camadas e responsabilidades
+
+| Camada         | Responsabilidade                                                                    | Não deve conter                                                    |
+| -------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Apresentação   | Rotas, controllers, handlers, componentes de interface e conversão de entrada/saída | Regras de negócio complexas, SQL ou acesso direto a infraestrutura |
+| Aplicação      | Casos de uso, orquestração, coordenação de fluxos e conversão de DTOs               | Detalhes específicos de frameworks, banco ou transporte            |
+| Domínio        | Entidades, objetos de valor, regras e serviços de negócio                           | HTTP, ORM, UI, SQL, filas ou detalhes de infraestrutura            |
+| Infraestrutura | Repositórios concretos, adaptadores, clientes HTTP, persistência e mensageria       | Decisões centrais de política de negócio                           |
+| Compartilhado  | Tipos, utilitários ou componentes realmente reutilizados entre módulos              | Código específico de uma única feature disfarçado de compartilhado |
+
+Essas responsabilidades são orientações. Não mova automaticamente um arquivo de camada apenas por seu nome; analise o comportamento real e as dependências.
+
+## Apresentação
+
+A camada de apresentação deve:
+
+- receber e validar a estrutura básica da entrada;
+- autenticar e autorizar por meio dos mecanismos definidos pelo projeto;
+- chamar casos de uso;
+- converter resultados para o formato de resposta;
+- mapear erros para códigos ou mensagens apropriados;
+- lidar com detalhes específicos do transporte ou da interface.
+
+Evite colocar nela:
+
+- regras de negócio;
+- consultas diretas ao banco;
+- decisões complexas de domínio;
+- chamadas diretas a serviços externos;
+- lógica duplicada entre diferentes pontos de entrada.
+
+## Aplicação
+
+A camada de aplicação deve:
+
+- representar ações ou casos de uso do sistema;
+- coordenar entidades, serviços e portas;
+- controlar o fluxo da operação;
+- definir transações quando essa responsabilidade pertencer à aplicação;
+- converter dados entre a apresentação e o domínio;
+- retornar resultados adequados ao consumidor.
+
+Casos de uso não devem conhecer detalhes desnecessários de HTTP, UI, ORM ou implementação concreta de infraestrutura.
+
+## Domínio
+
+A camada de domínio deve:
+
+- conter regras essenciais do negócio;
+- proteger invariantes;
+- representar entidades e objetos de valor;
+- expressar comportamentos importantes do domínio;
+- permanecer independente de frameworks e detalhes externos.
+
+Evite transformar o domínio em um conjunto de objetos sem comportamento quando houver regras que devam ser protegidas ali.
+
+Também evite colocar no domínio regras que pertencem exclusivamente à apresentação, persistência, transporte ou configuração operacional.
+
+## Infraestrutura
+
+A infraestrutura deve:
+
+- implementar portas e interfaces necessárias pelas camadas internas;
+- encapsular bancos de dados, ORMs, APIs externas, filas, armazenamento e serviços técnicos;
+- traduzir modelos externos para modelos internos;
+- concentrar detalhes de configuração e integração;
+- permitir substituição ou teste dos adaptadores quando necessário.
+
+Não coloque políticas centrais do negócio em repositórios, clientes HTTP ou adaptadores de infraestrutura.
+
+## Princípios SOLID
+
+Use SOLID como orientação prática, não como motivo para criar abstrações artificiais.
+
+### Responsabilidade única
+
+Cada módulo, classe ou função deve ter uma responsabilidade coerente e um motivo principal para mudar.
+
+Isso não significa que cada função precise ter apenas uma linha ou que cada arquivo contenha somente uma função.
+
+Antes de dividir um componente, verifique se as responsabilidades realmente evoluem de forma independente.
+
+### Aberto/fechado
+
+Prefira estender comportamentos por meio de estratégias, implementações ou módulos novos quando o núcleo existente estiver estável.
+
+Não crie extensibilidade antecipada sem uma necessidade concreta.
+
+Alterar código existente é aceitável quando a mudança for simples, segura e compatível com os contratos atuais.
+
+### Substituição de Liskov
+
+Implementações de uma mesma abstração devem respeitar seu contrato.
+
+Uma implementação não deve:
+
+- aceitar menos casos do que o contrato promete;
+- retornar um formato incompatível;
+- lançar erros inesperados para operações válidas;
+- alterar silenciosamente garantias importantes;
+- exigir condições mais restritivas que a abstração original.
+
+### Segregação de interfaces
+
+Prefira interfaces pequenas, coesas e orientadas ao consumidor.
+
+Evite:
+
+- interfaces que agrupam operações sem relação;
+- repositórios com dezenas de métodos;
+- abstrações genéricas que escondem responsabilidades diferentes;
+- obrigar implementações a fornecer métodos que não utilizam.
+
+### Inversão de dependência
+
+Módulos de alto nível devem depender de abstrações estáveis, não de detalhes concretos.
+
+Quando uma abstração for necessária:
+
+- defina a porta próxima de quem a utiliza;
+- injete a implementação;
+- monte as dependências no ponto de composição da aplicação;
+- mantenha adaptadores concretos fora do domínio.
+
+Não crie uma interface apenas para substituir uma classe em um teste, a menos que exista uma fronteira real de comportamento ou integração.
+
+## Organização por funcionalidade
+
+Quando o projeto permitir e a mudança for nova, prefira módulos orientados à funcionalidade:
+
+```text
+src/
+└── modules/
+    └── checkout/
+        ├── domain/
+        ├── application/
+        ├── infrastructure/
+        └── presentation/
+```
+
+Essa estrutura deve ser adaptada ao layout real do projeto.
+
+Não force a migração de uma estrutura existente como:
+
+```text
+src/
+├── controllers/
+├── services/
+├── repositories/
+└── entities/
+```
+
+sem antes avaliar o custo, as dependências e o benefício da mudança.
+
+A organização por funcionalidade é uma preferência para novos módulos, não uma obrigação de reescrever o sistema inteiro.
+
+## Pasta compartilhada
+
+Use `shared/` somente para código que:
+
+- é reutilizado por múltiplas funcionalidades;
+- possui responsabilidade claramente transversal;
+- não pertence naturalmente a um módulo específico;
+- tem uma API estável e bem definida.
+
+Não use `shared/` como destino padrão para:
+
+- código difícil de classificar;
+- funções usadas por uma única feature;
+- regras de negócio de um módulo;
+- dependências circulares temporariamente ocultadas.
+
+Se um componente for usado por apenas uma funcionalidade, mantenha-o dentro dela.
+
+## Antes de criar uma nova camada ou pasta
+
+Antes de criar uma nova estrutura de nível superior:
+
+1. inspecione o layout atual;
+2. identifique o padrão dominante;
+3. localize exemplos semelhantes;
+4. verifique se a nova pasta resolve um problema real;
+5. avalie impactos nas importações, testes e build;
+6. explique qualquer desvio do padrão existente;
+7. evite misturar dois modelos arquiteturais sem uma fronteira clara.
+
+## Testabilidade
+
+A arquitetura deve facilitar testes, mas testabilidade não justifica abstrações sem valor.
+
+Priorize:
+
+- regras de domínio testáveis sem infraestrutura;
+- casos de uso testados com dependências controladas;
+- adaptadores testados em sua fronteira;
+- testes de integração para contratos relevantes;
+- testes de apresentação para mapeamento de entrada, saída e erros.
+
+Não substitua todos os testes reais por mocks.
+
+## Sinais de violação arquitetural
+
+Investigue quando encontrar:
+
+- domínio importando framework, ORM, HTTP ou UI;
+- controller contendo regras extensas de negócio;
+- caso de uso instanciando diretamente adaptadores concretos;
+- repositório decidindo políticas de negócio;
+- dependências circulares entre camadas;
+- `shared/` acumulando código sem coesão;
+- DTOs externos vazando para o domínio;
+- múltiplos módulos duplicando a mesma regra;
+- interfaces criadas apenas para seguir SOLID formalmente.
+
+Nem todo sinal exige uma refatoração imediata. Avalie o escopo da tarefa e o risco da alteração.
+
+## Critério para alterações
+
+Ao adicionar ou modificar código:
+
+- coloque-o na camada que possui a responsabilidade correspondente;
+- siga a organização já adotada pelo módulo;
+- não mova arquivos sem necessidade;
+- preserve contratos existentes;
+- atualize testes afetados;
+- evite introduzir dependências externas em camadas internas;
+- documente decisões estruturais não óbvias.
+
+Se o projeto usar uma arquitetura diferente, siga o projeto e registre a diferença em vez de impor este modelo.

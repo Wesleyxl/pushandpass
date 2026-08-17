@@ -1,0 +1,442 @@
+---
+description: Fundamentos de segurança — secrets, autenticação, autorização, validação e dependências
+globs:
+  - 'src/**/*'
+  - 'app/**/*'
+  - 'lib/**/*'
+  - 'server/**/*'
+  - 'api/**/*'
+  - 'tests/**/*'
+alwaysApply: true
+---
+
+# Fundamentos de segurança
+
+## Objetivo
+
+Definir o nível mínimo de segurança para todas as camadas da aplicação.
+
+Estas orientações se aplicam a código que processa entrada externa, autenticação, autorização, dados sensíveis, persistência, integrações ou efeitos colaterais.
+
+Rules específicas de backend, API, infraestrutura ou proteção de dados podem complementar esta rule. Elas não devem enfraquecer estes fundamentos sem uma justificativa técnica, avaliação de risco e aprovação adequada.
+
+## Princípios gerais
+
+- Nunca confie em dados recebidos do cliente ou de serviços externos.
+- Valide entradas nas fronteiras do sistema.
+- Aplique autorização no servidor para cada operação protegida.
+- Proteja secrets durante todo o seu ciclo de vida.
+- Use o princípio do menor privilégio.
+- Prefira bibliotecas e mecanismos de segurança já adotados pelo projeto.
+- Não crie criptografia, hashing, tokens ou mecanismos de autenticação próprios.
+- Não desative controles de segurança para contornar erros.
+- Não exponha detalhes internos em respostas, logs ou mensagens de erro.
+- Considere segurança ao projetar uma funcionalidade, não apenas depois da implementação.
+
+## Secrets e credenciais
+
+Nunca inclua secrets em:
+
+- código-fonte;
+- logs;
+- mensagens de erro;
+- commits;
+- Pull Requests;
+- exemplos reais;
+- bundles enviados ao cliente;
+- imagens de containers;
+- arquivos de configuração versionados.
+
+Considere secret qualquer informação que permita autenticar, autorizar ou acessar recursos protegidos, incluindo:
+
+- senhas;
+- API keys;
+- tokens;
+- secrets JWT;
+- chaves privadas;
+- certificados;
+- credenciais de banco;
+- URLs de conexão com senha;
+- credenciais de serviços externos;
+- tokens de webhooks;
+- chaves de criptografia.
+
+Use:
+
+- variáveis de ambiente gerenciadas de forma segura;
+- secret managers;
+- credenciais diferentes por ambiente;
+- permissões mínimas;
+- rotação de credenciais quando aplicável.
+
+Um arquivo de exemplo deve conter apenas placeholders:
+
+```env
+# .env.example
+DATABASE_URL=postgresql://usuario:senha@localhost:5432/app
+JWT_SECRET=coloque-um-secret-com-pelo-menos-32-caracteres
+```
+
+O exemplo não deve conter credenciais reais, mesmo que sejam de desenvolvimento.
+
+Antes de concluir uma alteração:
+
+- verifique o diff em busca de secrets;
+- não copie valores sensíveis para a resposta;
+- redija tokens e chaves em logs;
+- confirme que arquivos `.env` não serão versionados;
+- não inclua credenciais em fixtures, testes ou documentação.
+
+Se um secret for exposto:
+
+1. não o replique;
+2. interrompa a divulgação;
+3. informe que ele precisa ser revogado ou rotacionado;
+4. remova-o da fonte apropriada;
+5. avalie o histórico do repositório e os sistemas afetados;
+6. siga o procedimento de resposta a incidentes do projeto.
+
+## Autenticação
+
+Autenticação responde:
+
+> Quem é o usuário, serviço ou sistema que está fazendo a requisição?
+
+Ao implementar autenticação:
+
+- reutilize o middleware, guard ou mecanismo existente;
+- valide tokens e sessões no servidor;
+- verifique expiração, emissor, audiência e assinatura quando aplicável;
+- preserve mecanismos de logout e revogação;
+- proteja fluxos de recuperação de senha;
+- aplique limitação de tentativas em operações sensíveis;
+- não registre senhas, tokens completos ou códigos de recuperação;
+- não armazene senhas em texto puro;
+- use mecanismos adequados de hash de senha, como Argon2, bcrypt ou scrypt;
+- não use MD5 ou SHA-1 para armazenar senhas;
+- não implemente criptografia ou autenticação própria.
+
+Não altere a estratégia de autenticação, sessões, tokens ou recuperação de conta sem avaliar impacto e seguir os limites de alteração do projeto.
+
+## Autorização
+
+Autorização responde:
+
+> O usuário autenticado pode executar esta ação neste recurso?
+
+Ao proteger uma operação:
+
+- valide permissões no servidor;
+- verifique o recurso específico, não apenas o papel do usuário;
+- aplique verificações de propriedade quando necessário;
+- considere o estado do recurso;
+- negue por padrão quando não houver permissão explícita;
+- mantenha políticas centralizadas ou em locais coerentes;
+- registre violações de autorização sem expor dados sensíveis.
+
+Nunca confie em:
+
+- roles enviadas pelo cliente;
+- campos como `isAdmin`;
+- IDs fornecidos sem verificação de propriedade;
+- permissões armazenadas apenas no frontend;
+- elementos de interface ocultos como mecanismo de segurança.
+
+Exemplo de dado não confiável:
+
+```json
+{
+  "userId": "123",
+  "isAdmin": true
+}
+```
+
+O servidor deve determinar a identidade e as permissões a partir da sessão, token ou contexto confiável.
+
+## Validação de entrada
+
+Toda entrada externa deve ser validada na fronteira do sistema, incluindo:
+
+- corpo HTTP;
+- query parameters;
+- parâmetros de rota;
+- headers;
+- formulários;
+- webhooks;
+- uploads;
+- mensagens de fila;
+- eventos;
+- dados recebidos de APIs externas;
+- variáveis controladas por usuários.
+
+Valide:
+
+- tipo;
+- formato;
+- tamanho;
+- limites;
+- enumerações;
+- campos obrigatórios;
+- relações entre campos;
+- codificação;
+- permissões associadas ao valor.
+
+Prefira a biblioteca de validação já usada pelo projeto, como Zod, Joi, class-validator ou equivalente.
+
+Siga o padrão existente para campos desconhecidos. Se o projeto usar schemas estritos, rejeite campos não previstos.
+
+A validação no frontend melhora a experiência, mas nunca substitui a validação no servidor.
+
+## Injeção
+
+### SQL e banco de dados
+
+- use queries parametrizadas;
+- use o ORM ou query builder adotado pelo projeto de forma segura;
+- nunca concatene entrada do usuário em SQL;
+- valide filtros, ordenação e nomes de campos quando forem dinâmicos;
+- não permita que o cliente escolha livremente uma tabela ou coluna sem uma lista permitida.
+
+Evite:
+
+```ts
+const query = `SELECT * FROM users WHERE email = '${email}'`
+```
+
+Prefira a API parametrizada ou o ORM já adotado pelo projeto.
+
+### Shell e sistema operacional
+
+- evite executar comandos com dados controlados pelo usuário;
+- prefira APIs estruturadas em vez de shell;
+- valide argumentos com lista permitida;
+- não use `exec` com strings concatenadas;
+- se a execução for necessária, separe comando e argumentos;
+- restrinja permissões do processo.
+
+### HTML e XSS
+
+- use a renderização segura do framework;
+- escape ou encode dados conforme o contexto;
+- não use `innerHTML` com conteúdo controlado pelo usuário;
+- não desative sanitização sem avaliação de segurança;
+- valide HTML permitido com uma biblioteca confiável quando HTML for realmente necessário.
+
+### Caminhos e arquivos
+
+- valide nomes de arquivo e extensões;
+- evite traversal como `../`;
+- normalize e restrinja caminhos a diretórios permitidos;
+- não permita que o usuário escolha livremente destinos no sistema;
+- aplique limites de tamanho;
+- não execute arquivos enviados;
+- gere nomes internos quando apropriado.
+
+## Uploads e arquivos
+
+Quando houver upload:
+
+- valide tamanho;
+- valide tipo real e não apenas extensão;
+- restrinja MIME types permitidos;
+- gere nomes seguros;
+- armazene fora da área pública quando possível;
+- não execute conteúdo enviado;
+- avalie antivírus ou análise especializada quando o risco justificar;
+- proteja contra path traversal;
+- limite quantidade e frequência;
+- não confie no nome fornecido pelo cliente.
+
+Esta rule não substitui uma avaliação específica para uploads.
+
+## Tratamento de erros e respostas
+
+As respostas para clientes devem conter somente informações necessárias e seguras.
+
+Não exponha:
+
+- stack traces;
+- mensagens internas;
+- erros SQL;
+- caminhos do sistema;
+- nomes de tabelas;
+- detalhes de infraestrutura;
+- secrets;
+- tokens;
+- informações que permitam enumerar recursos protegidos.
+
+Prefira uma resposta genérica:
+
+```json
+{
+  "error": {
+    "code": "INTERNAL_ERROR",
+    "message": "Ocorreu um erro interno."
+  }
+}
+```
+
+As informações detalhadas devem ser registradas somente em logs protegidos, com redaction e controle de acesso.
+
+Não transforme todos os erros em `200 OK`. Use códigos e contratos coerentes com a API do projeto.
+
+Tenha cuidado com diferenças de resposta que permitam descobrir:
+
+- se um usuário existe;
+- se um e-mail está cadastrado;
+- se um recurso pertence a outra pessoa;
+- se uma operação falhou por permissão ou existência.
+
+## Logs e observabilidade
+
+Ao registrar logs:
+
+- nunca registre senhas;
+- nunca registre tokens completos;
+- nunca registre chaves privadas;
+- nunca registre dados completos de cartão;
+- redija PII quando não for necessária;
+- use IDs de correlação;
+- registre eventos de autenticação e autorização relevantes;
+- proteja acesso, retenção e exportação dos logs;
+- evite que dados sensíveis apareçam em mensagens de erro.
+
+O log deve ser útil para investigação sem se tornar uma fonte de vazamento.
+
+## Dependências e criptografia
+
+- prefira bibliotecas já utilizadas e mantidas pelo projeto;
+- não adicione dependências de segurança sem avaliar manutenção e histórico;
+- use primitivas criptográficas estabelecidas;
+- não implemente algoritmos próprios;
+- não use MD5 ou SHA-1 para senhas;
+- use um algoritmo de hash de senha apropriado;
+- use geração segura de números aleatórios;
+- valide certificados e TLS conforme o ambiente;
+- mantenha dependências com vulnerabilidades conhecidas sob acompanhamento;
+- remova dependências não utilizadas quando isso fizer parte de uma tarefa autorizada.
+
+Não substitua uma biblioteca criptográfica por uma implementação manual.
+
+## Comunicação segura
+
+Para comunicação externa:
+
+- use HTTPS/TLS;
+- não desative validação de certificados em produção;
+- proteja cookies de sessão com `HttpOnly`, `Secure` e `SameSite` conforme o fluxo;
+- restrinja CORS a origens necessárias;
+- não use `*` para origens sensíveis em produção;
+- proteja operações que alteram estado contra CSRF quando aplicável;
+- valide webhooks e assinaturas;
+- evite enviar secrets em query strings;
+- limite exposição de headers sensíveis.
+
+## Dados sensíveis e privacidade
+
+Antes de processar dados sensíveis:
+
+- identifique quais dados são coletados;
+- confirme a necessidade de armazená-los;
+- aplique minimização;
+- defina retenção;
+- restrinja acesso;
+- proteja dados em trânsito e em repouso quando necessário;
+- não inclua PII em respostas sem necessidade;
+- remova ou anonimize dados conforme a política do projeto;
+- considere requisitos legais e regulatórios aplicáveis.
+
+Não invente políticas de retenção ou privacidade. Quando elas não estiverem definidas, sinalize a lacuna.
+
+## Rate limiting e abuso
+
+Avalie limitação de frequência para:
+
+- login;
+- recuperação de senha;
+- envio de códigos;
+- endpoints públicos;
+- operações caras;
+- uploads;
+- criação de recursos;
+- consultas que possam ser usadas para enumeração;
+- webhooks e callbacks.
+
+O limite deve considerar:
+
+- usuário;
+- IP;
+- token;
+- recurso;
+- custo da operação;
+- risco de negação de serviço.
+
+Não adicione ou altere rate limiting de autenticação sem avaliar impacto em segurança e disponibilidade.
+
+## Checklist antes de concluir uma feature
+
+Antes de considerar uma feature segura, responda:
+
+1. Quais entradas externas ela recebe?
+2. Essas entradas são validadas no servidor?
+3. Há autenticação quando necessário?
+4. A autorização verifica o recurso e a ação?
+5. Existe risco de exposição ou enumeração de dados?
+6. Há SQL, shell, HTML, arquivos ou comandos envolvidos?
+7. Alguma entrada chega a um sink perigoso?
+8. Algum secret ou dado sensível é armazenado ou registrado?
+9. Existe risco de abuso em escala?
+10. É necessário rate limiting?
+11. As respostas expõem detalhes internos?
+12. As dependências usadas são confiáveis e já adotadas?
+13. Há testes para casos de falha e acesso indevido?
+14. A mudança afeta contratos, autenticação ou dados?
+15. Existe algum risco que exige aprovação explícita?
+
+## Validação e testes de segurança
+
+Quando aplicável:
+
+- adicione testes para entradas inválidas;
+- teste acesso sem autenticação;
+- teste acesso com permissão insuficiente;
+- teste isolamento entre usuários;
+- teste tokens expirados ou inválidos;
+- teste limites de tamanho e frequência;
+- teste respostas sem detalhes internos;
+- execute ferramentas já configuradas no projeto;
+- verifique dependências vulneráveis;
+- revise o diff em busca de secrets;
+- faça revisão manual de novas fronteiras de confiança.
+
+Não considere uma funcionalidade segura apenas porque o caminho feliz funciona.
+
+## Alterações sensíveis
+
+Solicite aprovação explícita antes de:
+
+- criar ou alterar fluxo de autenticação;
+- alterar autorização ou papéis;
+- adicionar uma nova categoria de dados sensíveis;
+- modificar CORS;
+- adicionar uploads;
+- alterar rate limiting;
+- conceder permissões elevadas;
+- mudar criptografia, sessões ou tokens;
+- integrar um novo serviço externo;
+- alterar configurações de segurança de produção.
+
+Siga também `020-core-change-boundaries.mdc` e `030-core-decision-making.mdc`.
+
+## Prioridade
+
+Quando segurança e conveniência entrarem em conflito:
+
+1. preserve confidencialidade, integridade e disponibilidade;
+2. proteja autenticação e autorização;
+3. minimize exposição de dados;
+4. preserve compatibilidade sem enfraquecer controles;
+5. informe o trade-off;
+6. solicite aprovação quando a decisão tiver impacto relevante.
+
+Não remova um controle de segurança apenas para reduzir esforço de implementação.

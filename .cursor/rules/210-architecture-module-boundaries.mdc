@@ -1,0 +1,399 @@
+---
+description: Limites entre módulos, regras de acoplamento e responsabilidades transversais
+globs:
+  - 'src/**/*'
+  - 'tests/**/*'
+alwaysApply: false
+---
+
+# Limites entre módulos
+
+## Objetivo
+
+Manter as funcionalidades independentes, evolutivas e fáceis de testar, reduzindo efeitos colaterais e alterações em cadeia.
+
+Cada módulo deve esconder seus detalhes internos e expor somente os contratos necessários para ser utilizado por outras partes do sistema.
+
+Esta rule complementa os princípios arquiteturais do projeto. A estrutura e as convenções específicas já adotadas têm prioridade sobre este modelo.
+
+## Princípios gerais
+
+- Organize o código em módulos com responsabilidades coesas.
+- Mantenha os detalhes internos de cada módulo encapsulados.
+- Exponha somente a menor API pública necessária.
+- Prefira contratos estáveis a dependências diretas entre implementações.
+- Evite que uma mudança interna de um módulo exija alterações em consumidores externos.
+- Não crie dependências entre módulos sem uma necessidade funcional clara.
+- Não use um módulo compartilhado para esconder uma dependência mal definida.
+- Preserve limites de módulo ao criar, mover ou reutilizar código.
+
+## Limites de um módulo
+
+Um módulo deve possuir:
+
+- uma responsabilidade funcional clara;
+- regras de negócio relacionadas;
+- casos de uso próprios;
+- infraestrutura necessária para seu funcionamento;
+- testes correspondentes;
+- uma superfície pública pequena e documentada.
+
+Uma estrutura possível é:
+
+```text
+src/
+└── modules/
+    └── pedidos/
+        ├── presentation/
+        ├── application/
+        ├── domain/
+        ├── infrastructure/
+        ├── index.ts
+        └── pedidos.test.ts
+```
+
+A estrutura real do projeto pode ser diferente. Não reorganize módulos apenas para igualá-los a este exemplo.
+
+## Superfície pública
+
+Cada módulo deve expor uma superfície pública estreita.
+
+Quando o projeto utilizar barrel exports, facades ou arquivos de entrada, exporte somente:
+
+- casos de uso públicos;
+- tipos e contratos necessários;
+- eventos publicados;
+- interfaces destinadas a consumidores externos;
+- resultados ou erros que façam parte do contrato.
+
+Não exporte por padrão:
+
+- entidades internas;
+- repositórios concretos;
+- queries;
+- adaptadores;
+- detalhes de persistência;
+- funções auxiliares internas;
+- componentes de apresentação privados.
+
+Exemplo:
+
+```ts
+// Permitido: contrato público do módulo
+export { CriarPedido } from './application/criar-pedido'
+export type { PedidoCriado } from './application/contratos'
+```
+
+Evite:
+
+```ts
+// Evitar: expõe detalhes internos
+export * from './infrastructure/repositorios'
+export * from './domain/entidades-internas'
+export * from './presentation/controllers'
+```
+
+O formato exato dos exports deve seguir o padrão existente no projeto.
+
+## Dependências permitidas
+
+Como referência:
+
+```text
+módulo-A/presentation
+    → módulo-A/application
+    → módulo-A/domain
+
+módulo-A/infrastructure
+    → módulo-A/application ou módulo-A/domain
+
+módulo-A
+    → shared
+
+módulo-A
+    → módulo-B somente por meio de contrato público
+```
+
+Uma dependência entre módulos deve ocorrer por meio de:
+
+- caso de uso público;
+- facade;
+- interface;
+- tipo de contrato;
+- evento;
+- porta;
+- serviço compartilhado realmente genérico.
+
+Não acesse detalhes internos de outro módulo para evitar criar uma dependência aparentemente conveniente, mas estruturalmente frágil.
+
+## Dependências entre funcionalidades
+
+Ao integrar duas funcionalidades:
+
+1. identifique qual módulo é o proprietário da regra;
+2. procure um contrato público existente;
+3. reutilize um caso de uso, facade, porta ou evento;
+4. evite importar arquivos internos do módulo consumidor;
+5. avalie dependência síncrona e assíncrona;
+6. adicione testes para o contrato entre os módulos.
+
+Exemplo recomendado:
+
+```text
+checkout → contrato público de pagamentos
+```
+
+Exemplo a evitar:
+
+```text
+checkout → pagamentos/infrastructure/repositorios/pagamento-repository
+```
+
+O módulo consumidor não deve depender de:
+
+- `infrastructure/` de outro módulo;
+- `presentation/` de outro módulo;
+- entidades internas não exportadas;
+- queries privadas;
+- detalhes específicos de banco;
+- caminhos profundos que não fazem parte do contrato público.
+
+## Código compartilhado
+
+Pastas como `shared/`, `common/` ou `core/` devem conter somente código realmente genérico e transversal.
+
+Exemplos aceitáveis:
+
+- tipos básicos usados por vários módulos;
+- utilitários sem regra de negócio;
+- abstrações de infraestrutura comuns;
+- componentes técnicos compartilhados;
+- funções de conversão genéricas;
+- erros fundamentais do sistema, quando isso seguir o padrão do projeto.
+
+Não coloque em código compartilhado:
+
+- regras específicas de uma feature;
+- entidades de um único módulo;
+- serviços que atendem apenas um consumidor;
+- funções difíceis de classificar;
+- código colocado ali apenas para evitar decidir seu pertencimento;
+- dependências de um módulo específico.
+
+Antes de mover algo para `shared/`, confirme que:
+
+- existem pelo menos dois consumidores reais;
+- o comportamento é genuinamente genérico;
+- não há conhecimento específico de uma feature;
+- a API pode permanecer estável;
+- a mudança não cria dependência circular.
+
+Prefira manter o código dentro do módulo até existir uma necessidade real de compartilhamento.
+
+## Dependências proibidas
+
+Evite ou rejeite:
+
+- importação direta do `infrastructure/` de outro módulo;
+- importação direta do `presentation/` de outro módulo;
+- dependências circulares entre módulos;
+- acesso a arquivos internos por caminhos profundos;
+- referências de domínio para UI, HTTP, ORM ou detalhes técnicos;
+- módulos que conhecem detalhes excessivos de outros módulos;
+- duplicação de contratos com pequenas diferenças;
+- pastas `utils/` ou `helpers/` usadas como depósito de código sem coesão.
+
+Exemplos de dependências problemáticas:
+
+```text
+módulo-A/domain → módulo-B/infrastructure
+módulo-A/presentation → módulo-B/presentation
+módulo-A → módulo-B/internal/*
+módulo-A → módulo-B → módulo-A
+```
+
+Nem toda dependência entre módulos é proibida. O problema é atravessar os limites públicos ou criar acoplamento que impeça a evolução independente.
+
+## Dependências circulares
+
+Evite ciclos como:
+
+```text
+módulo-A → módulo-B → módulo-A
+```
+
+Ao identificar um ciclo:
+
+1. confirme se a dependência é realmente necessária;
+2. identifique a regra ou contrato comum;
+3. mova o contrato para a camada apropriada;
+4. use uma interface ou evento quando isso representar melhor a relação;
+5. extraia um módulo comum somente se ele tiver coesão própria;
+6. não resolva o problema apenas movendo arquivos para `shared/`.
+
+Não esconda uma dependência circular por meio de imports dinâmicos sem entender sua causa.
+
+## Responsabilidades transversais
+
+Responsabilidades transversais devem respeitar os limites das camadas e dos módulos.
+
+| Responsabilidade         | Local preferencial                                                      |
+| ------------------------ | ----------------------------------------------------------------------- |
+| Logs                     | Adaptador na infraestrutura e interface na aplicação, quando necessário |
+| Contexto de autenticação | Middleware, guard ou interceptor na apresentação; política na aplicação |
+| Validação estrutural     | Limite de entrada, como controller, handler ou schema                   |
+| Invariantes de negócio   | Domínio                                                                 |
+| Autorização de negócio   | Aplicação ou domínio, conforme a regra                                  |
+| Mapeamento de erros      | Erros internos no domínio/aplicação e conversão na apresentação         |
+| Métricas                 | Instrumentação na camada apropriada, sem contaminar regras de domínio   |
+| Transações               | Aplicação ou infraestrutura, conforme a arquitetura do projeto          |
+| Configuração             | Composição da aplicação ou infraestrutura                               |
+| Rastreamento distribuído | Adaptores de infraestrutura e pontos de entrada                         |
+
+Esses locais são referências. Siga o padrão existente quando ele for consistente e documentado.
+
+## Autenticação e autorização
+
+Diferencie:
+
+- **autenticação:** identificar quem está fazendo a requisição;
+- **autorização:** determinar se essa pessoa ou serviço pode executar uma ação.
+
+Como regra geral:
+
+- extraia a identidade no middleware, guard ou camada de entrada;
+- transporte o contexto autenticado por meio de um contrato;
+- aplique políticas de acesso na aplicação ou no domínio;
+- não espalhe verificações de autorização em vários controllers;
+- não trate apenas a presença de um token como autorização suficiente.
+
+As regras de segurança específicas do projeto têm prioridade sobre esta orientação geral.
+
+## Validação e erros
+
+Separe os tipos de validação:
+
+### Validação de entrada
+
+Verifica formato, tipos, campos obrigatórios e limites básicos na fronteira do sistema.
+
+Exemplos:
+
+- corpo HTTP;
+- parâmetros de rota;
+- mensagens de fila;
+- payload de eventos;
+- dados recebidos de APIs externas.
+
+### Validação de domínio
+
+Protege invariantes e regras essenciais do negócio.
+
+Exemplos:
+
+- uma transição de estado permitida;
+- limite de quantidade;
+- combinação válida de atributos;
+- condição necessária para executar uma operação.
+
+Não coloque regras de domínio complexas apenas no controller ou no schema de entrada.
+
+### Mapeamento de erros
+
+- domínio e aplicação devem produzir erros coerentes com seus contratos;
+- apresentação deve convertê-los para HTTP, UI ou outro formato externo;
+- detalhes internos e informações sensíveis não devem ser expostos;
+- não transforme todo erro em uma resposta genérica se o consumidor precisa distinguir casos válidos.
+
+## Facades, contratos e eventos
+
+Use uma facade ou serviço de aplicação quando:
+
+- consumidores precisam de um fluxo estável;
+- o módulo possui várias etapas internas;
+- detalhes internos devem permanecer encapsulados;
+- a chamada direta a vários componentes criaria acoplamento.
+
+Use contratos ou interfaces quando:
+
+- há uma dependência síncrona necessária;
+- o consumidor precisa de uma capacidade bem definida;
+- uma implementação pode variar;
+- a fronteira deve ser testada isoladamente.
+
+Use eventos quando:
+
+- o consumidor não precisa bloquear a operação principal;
+- a comunicação assíncrona for adequada ao domínio;
+- o desacoplamento compensar a complexidade operacional;
+- a entrega, duplicidade e ordenação puderem ser tratadas corretamente.
+
+Não use eventos apenas para evitar uma dependência simples e bem definida.
+
+## Testes de limites
+
+Os testes devem refletir os contratos entre os módulos.
+
+Priorize:
+
+- testes unitários para regras internas;
+- testes de aplicação para casos de uso;
+- testes de contrato para interfaces públicas;
+- testes de integração para adaptadores;
+- testes de fluxo para integrações entre módulos.
+
+Quando um módulo consumir outro:
+
+- teste o comportamento público;
+- não acople o teste aos detalhes internos do módulo fornecedor;
+- evite mockar todos os componentes sem necessidade;
+- valide o contrato que realmente importa para o consumidor.
+
+## Sinais de acoplamento excessivo
+
+Considere uma refatoração incremental quando encontrar:
+
+- imports profundos em outro módulo;
+- múltiplos consumidores dependendo de classes concretas;
+- alterações em uma feature exigindo mudanças em várias outras;
+- exports que expõem quase toda a implementação;
+- lógica duplicada para contornar um contrato ausente;
+- dependências circulares;
+- `shared/` crescendo sem coesão;
+- arquivos que misturam duas camadas;
+- um módulo conhecendo tabelas ou detalhes de persistência de outro;
+- testes que precisam conhecer a estrutura interna de outro módulo.
+
+Uma regra de tamanho pode servir como sinal, não como lei absoluta. Um arquivo com mais de aproximadamente 300 linhas merece revisão, mas tamanho sozinho não determina que ele deva ser extraído.
+
+## Estratégia de refatoração
+
+Ao identificar um limite inadequado:
+
+1. registre o acoplamento atual;
+2. identifique o contrato desejado;
+3. adicione testes para o comportamento público;
+4. introduza uma facade, interface ou evento;
+5. migre um consumidor por vez;
+6. remova imports internos antigos;
+7. verifique se não surgiram ciclos;
+8. exclua abstrações temporárias quando a migração terminar.
+
+Prefira mudanças pequenas, reversíveis e verificáveis.
+
+Não faça uma reescrita ampla apenas para aplicar um modelo ideal.
+
+## Antes de criar uma dependência entre módulos
+
+Verifique:
+
+1. qual módulo é dono da regra;
+2. se já existe um contrato público;
+3. se a dependência é síncrona ou assíncrona;
+4. se a dependência pode ser invertida;
+5. se o compartilhamento é realmente genérico;
+6. se a mudança cria um ciclo;
+7. quais testes devem ser atualizados;
+8. se a nova dependência aumenta o acoplamento de forma aceitável.
+
+Documente decisões não óbvias ou que estabeleçam um novo padrão no projeto.

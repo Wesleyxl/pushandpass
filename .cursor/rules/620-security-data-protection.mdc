@@ -1,0 +1,479 @@
+---
+description: Proteção de dados — PII, classificação, criptografia, retenção, exclusão e backups
+globs:
+  - '**/models/**'
+  - '**/entities/**'
+  - '**/schemas/**'
+  - '**/migrations/**'
+  - '**/repositories/**'
+  - '**/database/**'
+  - '**/logs/**'
+  - '**/audit/**'
+  - '**/backup/**'
+  - '**/export/**'
+  - '**/privacy/**'
+alwaysApply: false
+---
+
+# Proteção de dados
+
+## Objetivo
+
+Definir práticas para tratar dados pessoais, confidenciais e restritos com segurança durante coleta, processamento, armazenamento, transmissão, registro, exportação, retenção, backup e exclusão.
+
+Esta rule complementa:
+
+```text
+600-security-fundamentals.mdc
+```
+
+e, quando houver APIs envolvidas:
+
+```text
+610-security-api-security.mdc
+```
+
+Ela não substitui políticas internas, requisitos contratuais, avaliação jurídica ou orientação especializada de privacidade.
+
+## Princípios gerais
+
+- Colete somente os dados necessários para uma finalidade definida.
+- Use dados pessoais somente para finalidades autorizadas.
+- Restrinja acesso conforme a necessidade de uso.
+- Proteja dados em trânsito, em repouso, em logs e em backups.
+- Defina retenção e descarte antes de armazenar dados sensíveis.
+- Não duplique dados pessoais sem necessidade.
+- Não use dados reais em desenvolvimento ou testes sem autorização e proteção adequada.
+- Não registre dados pessoais completos quando uma versão mascarada for suficiente.
+- Não exponha dados sensíveis em respostas, erros, métricas ou traces.
+- Mantenha uma fonte de verdade para políticas de retenção e classificação.
+- Registre decisões de proteção de dados que não sejam óbvias.
+
+## Classificação de dados
+
+Classifique os dados conforme o risco e o impacto de exposição.
+
+| Classe       | Exemplos                                                         | Tratamento mínimo                                                       |
+| ------------ | ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Público      | Nome de produto, descrição pública, documentação publicada       | Controles padrão de integridade e disponibilidade                       |
+| Interno      | IDs internos, metadados operacionais, informações não publicadas | Acesso controlado e exposição limitada                                  |
+| Confidencial | E-mail, telefone, endereço, histórico de uso                     | Minimização, controle de acesso e proteção em repouso quando necessário |
+| Restrito     | Senhas, tokens, chaves, CPF, dados financeiros e documentos      | Acesso rigoroso, proteção específica, nunca registrar integralmente     |
+
+A classificação real deve seguir a política do projeto e os requisitos aplicáveis.
+
+Não determine a classificação apenas pelo nome do campo. Considere:
+
+- possibilidade de identificação;
+- impacto de exposição;
+- sensibilidade;
+- finalidade;
+- requisitos contratuais;
+- contexto de combinação com outros dados.
+
+## Dados pessoais
+
+Considere como potencialmente pessoal qualquer dado que possa identificar uma pessoa direta ou indiretamente, incluindo:
+
+- nome;
+- e-mail;
+- telefone;
+- endereço;
+- CPF;
+- documento;
+- identificadores persistentes;
+- endereço IP, quando aplicável;
+- dados de localização;
+- dados de conta;
+- histórico associado a uma pessoa;
+- metadados que permitam identificação.
+
+Dados aparentemente inofensivos podem se tornar sensíveis quando combinados.
+
+## Minimização e finalidade
+
+Antes de adicionar um campo pessoal:
+
+1. defina a finalidade;
+2. confirme que o campo é necessário;
+3. verifique se existe alternativa menos invasiva;
+4. determine quem precisa acessar o dado;
+5. defina retenção;
+6. avalie exposição em APIs, logs, backups e exports;
+7. documente a decisão quando ela não for óbvia.
+
+Não armazene dados “para usar no futuro” sem uma finalidade definida.
+
+Não copie dados pessoais para tabelas, eventos ou logs apenas por conveniência.
+
+## Senhas e credenciais
+
+Senhas nunca devem ser armazenadas em texto puro ou com criptografia reversível.
+
+Use somente mecanismos apropriados de hash de senha, como:
+
+- Argon2;
+- bcrypt;
+- scrypt;
+- outro mecanismo aprovado pelo projeto.
+
+Nunca use:
+
+- MD5;
+- SHA-1;
+- hash simples sem salt;
+- criptografia reversível para substituir hash de senha;
+- algoritmo próprio.
+
+Além disso:
+
+- não registre senhas;
+- não envie senhas em respostas;
+- não inclua senhas em fixtures reais;
+- não reutilize credenciais entre ambientes;
+- proteja fluxos de redefinição;
+- limite tentativas de autenticação conforme a política do projeto.
+
+## Tokens, chaves e secrets
+
+Tokens, API keys, chaves privadas e secrets devem:
+
+- ser armazenados somente em mecanismos apropriados;
+- possuir escopo e validade limitados quando possível;
+- ser revogáveis ou rotacionáveis;
+- não aparecer em logs;
+- não aparecer em respostas;
+- não ser incluídos em backups sem proteção equivalente;
+- não ser armazenados em campos de texto acessíveis sem controle.
+
+Não confunda hash de senha com proteção adequada para qualquer tipo de token. O tratamento depende do uso e da possibilidade de validação posterior.
+
+## Armazenamento
+
+Ao armazenar dados sensíveis:
+
+- use controle de acesso por menor privilégio;
+- proteja conexões com o banco;
+- avalie criptografia em repouso;
+- use gerenciamento seguro de chaves;
+- evite replicar dados sem necessidade;
+- separe dados por ambiente quando aplicável;
+- proteja índices e buscas que possam revelar dados;
+- documente campos sensíveis e suas finalidades.
+
+Não implemente criptografia própria.
+
+Ao criptografar campos:
+
+- use biblioteca confiável;
+- defina rotação de chaves;
+- planeje recuperação e migração;
+- não armazene a chave junto com o dado;
+- avalie impacto em busca, ordenação e índices;
+- teste falhas de descriptografia;
+- defina quem pode descriptografar.
+
+A criptografia não substitui controle de acesso.
+
+## Dados em trânsito
+
+Dados sensíveis devem trafegar por canais protegidos.
+
+- Use TLS para comunicação externa e interna quando aplicável.
+- Não envie dados sensíveis por HTTP simples.
+- Não desative validação de certificados.
+- Não ignore erros de TLS para fazer uma integração funcionar.
+- Evite incluir secrets ou PII em query strings.
+- Proteja cookies e headers de autenticação.
+- Valide certificados e nomes de host conforme o ambiente.
+- Siga as configurações de rede e proxy do projeto.
+
+Para integrações externas:
+
+- confirme o destino;
+- limite os dados enviados;
+- valide a resposta;
+- proteja credenciais;
+- registre somente metadados necessários.
+
+## Logs, métricas e traces
+
+Logs, métricas e traces podem conter dados sensíveis mesmo quando a aplicação não os trata como dados principais.
+
+Não registre por padrão:
+
+- senhas;
+- tokens completos;
+- API keys;
+- secrets;
+- chaves privadas;
+- dados completos de cartão;
+- CPF completo;
+- documentos;
+- corpos completos de requisições em produção;
+- cookies;
+- headers de autenticação;
+- dados pessoais desnecessários.
+
+Quando o dado for necessário para investigação, mas não precisar estar completo, masque-o.
+
+Exemplo:
+
+```text
+j***@example.com
+```
+
+Outras práticas:
+
+- use redaction centralizada;
+- aplique políticas diferentes por ambiente;
+- controle acesso aos logs;
+- defina retenção;
+- proteja exportações;
+- não copie logs de produção para ambientes inseguros;
+- use IDs de correlação em vez de repetir PII.
+
+Não presuma que um log com acesso restrito é automaticamente seguro.
+
+## Erros e respostas
+
+Mensagens de erro não devem expor:
+
+- PII desnecessária;
+- dados de outros usuários;
+- stack traces;
+- caminhos do sistema;
+- nomes de tabelas;
+- queries;
+- tokens;
+- configurações;
+- payloads sensíveis;
+- detalhes que permitam enumeração.
+
+Retorne somente as informações necessárias ao consumidor.
+
+Quando for necessário registrar detalhes para diagnóstico:
+
+- registre em canal protegido;
+- aplique redaction;
+- associe um identificador de correlação;
+- não replique o detalhe na resposta pública.
+
+## Retenção
+
+Toda categoria relevante de dado deve possuir uma política de retenção definida pelo produto, contrato ou política interna.
+
+Antes de adicionar armazenamento persistente:
+
+- identifique por quanto tempo o dado precisa existir;
+- determine o evento que inicia a retenção;
+- defina o evento ou processo de descarte;
+- considere backups, réplicas, caches e exports;
+- documente exceções;
+- considere obrigações legais ou contratuais.
+
+Não invente prazos de retenção. Se não houver política definida, registre a lacuna e solicite orientação quando a decisão for relevante.
+
+## Exclusão e anonimização
+
+Quando houver exigência de exclusão:
+
+- determine quais dados estão incluídos;
+- identifique cópias, réplicas, caches e exports;
+- avalie dependências e integridade referencial;
+- escolha entre exclusão, anonimização ou retenção legal;
+- preserve somente o mínimo necessário;
+- registre a operação de forma segura;
+- não registre o conteúdo excluído.
+
+A exclusão pode ser:
+
+- lógica, por soft-delete;
+- física, por hard-delete;
+- anonimização;
+- pseudonimização;
+- remoção seletiva de campos.
+
+A escolha deve seguir as regras do domínio e as políticas aplicáveis.
+
+Não implemente soft-delete como substituto automático de uma obrigação de exclusão. Soft-delete pode manter dados pessoais acessíveis e continuar sujeito à retenção.
+
+## Soft-delete e hard-delete
+
+Antes de escolher o mecanismo:
+
+- verifique requisitos de auditoria;
+- avalie relacionamentos;
+- determine o comportamento das APIs;
+- considere recuperação;
+- avalie buscas e relatórios;
+- defina o acesso a registros removidos;
+- documente a decisão na especificação.
+
+Não altere uma migration já aplicada para mudar a estratégia sem seguir os limites de alteração do projeto.
+
+## Backups e réplicas
+
+Backups devem ser tratados com proteção equivalente ou superior à base principal.
+
+- restrinja acesso;
+- aplique criptografia quando necessária;
+- controle chaves;
+- defina retenção;
+- registre acessos;
+- teste restauração;
+- mantenha inventário;
+- evite cópias não controladas;
+- aplique mascaramento quando backups forem usados para testes.
+
+Nunca restaure backup de produção em ambiente inseguro ou acessível sem autorização.
+
+Antes de restaurar:
+
+- confirme o ambiente de destino;
+- valide permissões;
+- remova ou masque dados quando possível;
+- desative integrações perigosas;
+- impeça envio acidental de e-mails, pagamentos ou webhooks;
+- registre a operação.
+
+## Ambientes de desenvolvimento e testes
+
+Não use dados de produção diretamente em desenvolvimento ou testes.
+
+Quando dados realistas forem necessários:
+
+- anonimize;
+- pseudonimize;
+- remova campos desnecessários;
+- limite acesso;
+- use ambiente isolado;
+- defina prazo de descarte;
+- documente a origem e o tratamento.
+
+Fixtures e seeds devem usar dados fictícios.
+
+Não copie logs, bancos ou exports de produção para o computador local sem autorização e proteção adequada.
+
+## Exportações e relatórios
+
+Para exportar dados:
+
+- confirme finalidade e autorização;
+- limite campos;
+- aplique filtros de escopo;
+- registre a operação quando necessário;
+- proteja o arquivo;
+- defina expiração;
+- evite links públicos;
+- controle download e compartilhamento;
+- remova arquivos temporários;
+- não inclua dados de outros usuários.
+
+Exportações devem seguir a mesma classificação dos dados de origem ou uma classificação mais restritiva quando combinarem informações.
+
+## Dados de terceiros e integrações
+
+Ao enviar dados para terceiros:
+
+- confirme a finalidade;
+- envie somente o mínimo necessário;
+- avalie contrato e autorização;
+- proteja o canal;
+- valide o destinatário;
+- não envie dados para serviços não aprovados;
+- registre a dependência e o tipo de dado compartilhado;
+- considere retenção e exclusão no terceiro.
+
+Não inclua PII em telemetria ou ferramentas externas sem necessidade e aprovação adequada.
+
+## Auditoria
+
+Para operações sensíveis, considere registrar:
+
+- quem realizou a ação;
+- qual ação foi realizada;
+- quando ocorreu;
+- qual recurso foi afetado;
+- resultado;
+- identificador de correlação;
+- origem ou contexto necessário.
+
+A auditoria não deve armazenar o dado sensível completo sem necessidade.
+
+Proteja registros de auditoria contra alteração indevida e defina sua retenção.
+
+## Incidentes e exposição
+
+Se houver suspeita de exposição de dados:
+
+1. não copie nem redistribua os dados;
+2. interrompa a propagação;
+3. preserve evidências de forma segura;
+4. informe os responsáveis pelo procedimento de incidentes;
+5. identifique tipos e volumes de dados envolvidos;
+6. revogue credenciais quando aplicável;
+7. avalie logs, backups e réplicas;
+8. siga os prazos e processos definidos pela organização.
+
+Não faça alterações destrutivas para apagar evidências sem orientação do procedimento de resposta a incidentes.
+
+## Alterações que exigem aprovação
+
+Solicite aprovação antes de:
+
+- adicionar uma nova categoria de dado pessoal;
+- alterar finalidade de uso;
+- mudar retenção;
+- alterar exclusão ou anonimização;
+- copiar dados de produção;
+- restaurar backup;
+- alterar criptografia ou gerenciamento de chaves;
+- enviar PII para um novo terceiro;
+- modificar logs que contenham dados sensíveis;
+- expor novos campos em APIs;
+- alterar controles de acesso;
+- executar exclusões em massa.
+
+Siga também:
+
+```text
+020-core-change-boundaries.mdc
+030-core-decision-making.mdc
+600-security-fundamentals.mdc
+610-security-api-security.mdc
+```
+
+## Checklist antes de concluir
+
+Antes de concluir uma alteração que envolva dados:
+
+1. Quais dados são coletados ou processados?
+2. Qual é a finalidade de cada dado?
+3. A coleta é mínima?
+4. A classificação está definida?
+5. Quem pode acessar os dados?
+6. Os dados estão protegidos em trânsito e em repouso quando necessário?
+7. Há PII em logs, métricas, traces ou erros?
+8. A retenção está definida?
+9. Como ocorre a exclusão ou anonimização?
+10. Backups e réplicas estão incluídos na avaliação?
+11. Dados reais estão sendo usados em testes ou desenvolvimento?
+12. Há exportações ou compartilhamento com terceiros?
+13. Existe requisito de auditoria?
+14. A mudança exige aprovação explícita?
+15. Há documentação ou especificação que precisa ser atualizada?
+
+## Critério de conclusão
+
+Considere a alteração concluída quando:
+
+- os dados tratados estiverem identificados;
+- a classificação e o acesso estiverem definidos;
+- secrets e PII não aparecerem indevidamente em código ou logs;
+- armazenamento e transporte forem adequados;
+- retenção e exclusão tiverem sido avaliadas;
+- backups e ambientes não produtivos tiverem sido considerados;
+- testes ou verificações relevantes tiverem sido executados;
+- riscos e limitações estiverem documentados;
+- requisitos legais ou de privacidade pendentes tiverem sido sinalizados.

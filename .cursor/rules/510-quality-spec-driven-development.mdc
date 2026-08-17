@@ -1,0 +1,484 @@
+---
+description: Desenvolvimento orientado por especificação para tarefas complexas e mudanças de alto risco
+globs:
+  - '**/*'
+alwaysApply: false
+---
+
+# Desenvolvimento orientado por especificação
+
+## Objetivo
+
+Reduzir retrabalho, ambiguidades e decisões inventadas, alinhando a implementação a uma intenção escrita, revisável e verificável antes da alteração do código.
+
+Uma especificação deve funcionar como um contrato entre o usuário, o agente e os responsáveis pela revisão.
+
+Ela deve definir:
+
+- o problema;
+- o resultado esperado;
+- o que está incluído;
+- o que está fora do escopo;
+- restrições;
+- decisões já tomadas;
+- critérios de aceitação;
+- estratégia de validação.
+
+A especificação deve orientar a implementação sem descrever cada linha de código.
+
+## Quando usar uma especificação primeiro
+
+Crie ou atualize uma especificação antes de implementar quando a tarefa envolver:
+
+- uma nova funcionalidade que afete três ou mais arquivos;
+- múltiplas camadas ou módulos;
+- alteração de API pública;
+- alteração de schema ou banco de dados;
+- autenticação ou autorização;
+- integração com serviços externos;
+- mudança de comportamento com impacto de produto;
+- requisitos ambíguos ou incompletos;
+- trabalho entre equipes ou serviços;
+- mudança que será executada em várias etapas ou sessões;
+- alteração com risco elevado ou difícil rollback.
+
+Uma especificação detalhada pode não ser necessária para:
+
+- correções simples e bem definidas;
+- alterações locais e reversíveis;
+- mudanças de texto;
+- ajustes mecânicos;
+- pequenas correções de tipagem;
+- tarefas exploratórias sem intenção de implementação imediata.
+
+Use um processo proporcional à complexidade. Spec-driven development não deve virar burocracia automática.
+
+## Fluxo
+
+```text
+Intenção → Exploração → Especificação → Revisão → Plano → Tarefas → Implementação → Verificação
+```
+
+### 1. Intenção
+
+Entenda:
+
+- qual problema está sendo resolvido;
+- quem é afetado;
+- por que a mudança é necessária;
+- qual resultado deve ser obtido;
+- quais restrições já foram definidas.
+
+Não comece pela solução técnica se o problema ainda estiver ambíguo.
+
+### 2. Exploração
+
+Antes de escrever a especificação:
+
+- inspecione a estrutura existente;
+- localize módulos relacionados;
+- procure implementações semelhantes;
+- leia contratos, testes e documentação;
+- identifique dependências;
+- verifique regras de negócio já existentes;
+- registre riscos e lacunas.
+
+A exploração deve ser predominantemente de leitura. Não altere o código apenas para descobrir como a solução poderia funcionar.
+
+### 3. Especificação
+
+Crie uma especificação concisa e suficiente para orientar o trabalho.
+
+Inclua:
+
+- contexto;
+- problema;
+- objetivo;
+- escopo;
+- fora do escopo;
+- usuários ou consumidores afetados;
+- comportamento esperado;
+- interfaces e contratos;
+- restrições;
+- decisões;
+- suposições;
+- critérios de aceitação;
+- estratégia de testes;
+- riscos;
+- plano de rollback quando aplicável.
+
+Não registre decisões de implementação que ainda não foram confirmadas como se fossem requisitos.
+
+### 4. Revisão
+
+Antes de implementar:
+
+- revise a especificação;
+- corrija requisitos ambíguos;
+- verifique se o escopo está controlado;
+- confirme os critérios de aceitação;
+- valide contratos e restrições;
+- identifique suposições que exigem confirmação;
+- confira se a solução segue os padrões do projeto.
+
+Para tarefas grandes, aguarde aprovação explícita da especificação.
+
+Não trate a aprovação como mera formalidade. A revisão da intenção é uma etapa essencial de qualidade. <sources>[2,3,5]</sources>
+
+### 5. Plano
+
+Depois que a especificação estiver suficientemente clara:
+
+- divida o trabalho em etapas pequenas;
+- relacione cada etapa a arquivos ou módulos;
+- defina a ordem e as dependências;
+- associe critérios de aceitação;
+- defina testes e verificações;
+- identifique etapas reversíveis;
+- evite tarefas que misturem várias responsabilidades.
+
+Cada tarefa deve ser pequena o suficiente para ser implementada e verificada isoladamente.
+
+### 6. Implementação
+
+Implemente em fatias verticais:
+
+- entregue uma parte funcional;
+- mantenha a mudança próxima da especificação;
+- adicione testes junto com o comportamento;
+- valide cada etapa;
+- não implemente itens fora do escopo;
+- registre decisões novas;
+- interrompa o trabalho se a implementação revelar uma ambiguidade relevante.
+
+Não faça uma grande alteração não verificada apenas porque a especificação existe.
+
+### 7. Verificação
+
+Após cada etapa:
+
+- execute os testes relacionados;
+- valide critérios de aceitação;
+- execute lint e verificação de tipos quando aplicável;
+- confira contratos;
+- revise o diff;
+- atualize a especificação quando o comportamento ou a decisão mudar;
+- registre itens pendentes.
+
+A conclusão da tarefa deve ser baseada em evidências, não apenas na existência de código compilando.
+
+## Local das especificações
+
+Use, por padrão:
+
+```text
+docs/specs/<feature-slug>.md
+```
+
+Adapte o caminho quando o projeto já possuir outra convenção.
+
+Exemplo:
+
+```text
+docs/specs/password-reset.md
+```
+
+A especificação deve ficar versionada junto com o projeto quando representar uma decisão ou requisito relevante.
+
+Não crie uma nova pasta de documentação sem verificar a estrutura existente.
+
+## Template de especificação
+
+Use o template existente quando houver:
+
+```text
+templates/feature-spec.template.md
+```
+
+Se o template não existir, use esta estrutura mínima:
+
+```md
+# <Nome da funcionalidade>
+
+## Status
+
+Status: draft
+Owner: @nome
+Last updated: YYYY-MM-DD
+
+## Contexto
+
+Qual problema existe e por que ele importa?
+
+## Objetivo
+
+Qual resultado deve ser alcançado?
+
+## Escopo
+
+O que será implementado?
+
+## Fora do escopo
+
+O que explicitamente não será implementado?
+
+## Usuários e consumidores
+
+Quem será afetado pela mudança?
+
+## Comportamento esperado
+
+Como o sistema deve funcionar?
+
+## Contratos e interfaces
+
+Quais APIs, eventos, tipos, comandos ou dados serão alterados?
+
+## Restrições
+
+Quais regras, tecnologias, padrões ou limites devem ser respeitados?
+
+## Suposições
+
+Quais pontos foram inferidos e ainda precisam de confirmação?
+
+## Critérios de aceitação
+
+- [ ] Critério verificável 1
+- [ ] Critério verificável 2
+- [ ] Critério verificável 3
+
+## Testes e verificação
+
+Como será comprovado que a mudança está correta?
+
+## Riscos
+
+Quais são os riscos técnicos, operacionais ou de segurança?
+
+## Rollback
+
+Como desfazer ou limitar a mudança, quando aplicável?
+
+## Decisões
+
+Quais decisões foram tomadas e por quê?
+```
+
+## Status da especificação
+
+Use um status claro:
+
+```text
+Status: draft | approved | in-progress | done
+Owner: @nome
+Last updated: YYYY-MM-DD
+```
+
+### `draft`
+
+A especificação está sendo elaborada e ainda pode sofrer alterações importantes.
+
+Não implemente uma tarefa grande baseada em uma spec que ainda está em `draft`, salvo instrução explícita do usuário.
+
+### `approved`
+
+A intenção, o escopo e os critérios principais foram revisados.
+
+A implementação pode começar, respeitando as decisões registradas.
+
+### `in-progress`
+
+A implementação começou.
+
+Atualize a spec quando houver mudança relevante de escopo, contrato ou decisão.
+
+### `done`
+
+Os critérios de aceitação foram atendidos e as verificações necessárias foram concluídas.
+
+Não marque como `done` apenas porque o código foi escrito.
+
+## Critérios de aceitação
+
+Os critérios devem ser:
+
+- observáveis;
+- testáveis;
+- específicos;
+- independentes quando possível;
+- relacionados ao resultado esperado;
+- claros sobre sucesso e erro.
+
+Prefira:
+
+```md
+- [ ] Usuários com sessão válida podem solicitar redefinição de senha.
+- [ ] Tokens expirados são rejeitados.
+- [ ] O endpoint não revela se um e-mail está cadastrado.
+- [ ] A solicitação duplicada não cria múltiplos tokens ativos.
+```
+
+Evite:
+
+```md
+- [ ] Implementar o serviço.
+- [ ] Criar o controller.
+- [ ] Fazer funcionar.
+```
+
+Estrutura de código não é, sozinha, critério de aceitação.
+
+## Suposições e perguntas
+
+Marque explicitamente as suposições:
+
+```md
+> **Suposição:** a expiração do token seguirá o padrão já usado no módulo de autenticação.
+```
+
+Pergunte antes de avançar quando a lacuna envolver:
+
+- regra de negócio;
+- segurança;
+- privacidade;
+- contrato público;
+- comportamento incompatível;
+- migração destrutiva;
+- decisão de produto;
+- operação irreversível.
+
+Se uma suposição técnica de baixo risco for necessária, registre-a e explique seu impacto.
+
+Não esconda decisões importantes em uma nota informal ou em um comentário de implementação.
+
+## Contratos e interfaces
+
+Para mudanças em APIs, eventos ou integrações, registre:
+
+- entradas;
+- saídas;
+- códigos de erro;
+- autenticação;
+- autorização;
+- compatibilidade;
+- versionamento;
+- depreciação;
+- exemplos relevantes;
+- consumidores conhecidos.
+
+Não altere contratos públicos sem avaliar os consumidores e os testes de contrato.
+
+## Banco de dados e migrations
+
+Para alterações de dados, registre:
+
+- tabelas ou coleções afetadas;
+- novos campos;
+- mudanças de tipo;
+- índices;
+- constraints;
+- estratégia de migração;
+- compatibilidade entre versões;
+- impacto em dados existentes;
+- rollback;
+- necessidade de backfill;
+- riscos de lock e volume.
+
+Não edite migrations já aplicadas sem aprovação explícita. Prefira uma nova migration quando o histórico já estiver compartilhado.
+
+## Testes derivados da especificação
+
+Cada critério de aceitação deve possuir uma forma de verificação adequada.
+
+Mapeie:
+
+```text
+Critério → Teste ou verificação → Resultado esperado
+```
+
+Exemplo:
+
+```text
+Usuário sem permissão não acessa o recurso
+→ teste de integração de autorização
+→ resposta 403 sem exposição de dados
+```
+
+Use:
+
+- testes unitários para regras isoladas;
+- testes de integração para módulos e persistência;
+- testes de contrato para APIs e eventos;
+- testes ponta a ponta para fluxos críticos;
+- validação manual quando o comportamento não puder ser automatizado adequadamente.
+
+A especificação não substitui os testes. Ela orienta o que deve ser testado.
+
+## Mudanças na especificação
+
+Quando a implementação revelar que a spec está incompleta ou incorreta:
+
+1. pare antes de tomar uma decisão relevante;
+2. registre o que foi descoberto;
+3. atualize a especificação;
+4. identifique impacto em escopo, contratos e tarefas;
+5. solicite revisão quando a mudança for importante;
+6. ajuste o plano;
+7. prossiga somente com a intenção atualizada.
+
+Não mantenha a especificação desatualizada para evitar trabalho documental.
+
+A spec é um artefato vivo e deve acompanhar a decisão atual do projeto. <sources>[1,3,5]</sources>
+
+## Anti-padrões
+
+Evite:
+
+- começar a codificar uma mudança complexa sem alinhar a intenção;
+- escrever uma especificação que apenas repete cada linha do código;
+- omitir o que está fora do escopo;
+- deixar critérios de aceitação vagos;
+- tratar suposições como requisitos;
+- criar uma spec enorme para uma alteração trivial;
+- aprovar uma spec sem revisar riscos e contratos;
+- implementar todas as tarefas de uma vez sem verificar etapas;
+- atualizar o código e esquecer de atualizar a spec;
+- marcar a spec como `done` sem validar os critérios;
+- usar a spec para impor uma tecnologia sem necessidade;
+- transformar a documentação em um plano rígido que impeça decisões locais seguras.
+
+## Integração com outras rules
+
+Esta rule deve ser usada junto com:
+
+```text
+030-core-decision-making.mdc
+120-ai-agent-workflows.mdc
+500-quality-testing-policy.mdc
+020-core-change-boundaries.mdc
+```
+
+Use as responsabilidades assim:
+
+- `030`: decide quando perguntar ou assumir;
+- `120`: conduz exploração, planejamento, implementação e verificação;
+- `500`: define testes e validações;
+- `020`: protege alterações críticas;
+- `510`: define a especificação como contrato de intenção e aceitação.
+
+Não duplique o conteúdo dessas rules. Mantenha referências curtas e claras.
+
+## Critério de conclusão
+
+Considere a tarefa concluída quando:
+
+- a especificação estiver atualizada;
+- o status refletir a situação real;
+- o escopo implementado corresponder ao escopo aprovado;
+- critérios de aceitação estiverem verificados;
+- testes e validações tiverem sido executados;
+- contratos e documentação relevantes estiverem atualizados;
+- suposições e decisões estiverem registradas;
+- riscos e pendências estiverem documentados;
+- alterações fora do escopo não tiverem sido incluídas.

@@ -1,0 +1,246 @@
+---
+description: Limites de alteração — áreas que exigem aprovação explícita
+globs:
+  - '**/*'
+alwaysApply: true
+---
+
+# Limites de alteração
+
+## Objetivo
+
+Proteger áreas críticas, sensíveis ou estáveis do projeto contra alterações acidentais, incompatíveis ou difíceis de reverter.
+
+Esta rule define quando o agente deve interromper a execução e solicitar aprovação explícita antes de alterar arquivos, configurações, contratos ou dados.
+
+Ela complementa as rules de segurança, arquitetura e workflow.
+
+## Princípio geral
+
+Antes de alterar uma área protegida:
+
+1. identifique o risco em linguagem simples;
+2. informe quais arquivos, sistemas ou consumidores podem ser afetados;
+3. explique se a mudança é reversível;
+4. proponha uma estratégia incremental quando aplicável;
+5. destaque possíveis quebras de compatibilidade;
+6. aguarde aprovação explícita antes de executar a alteração.
+
+Não considere uma instrução genérica como “faça a feature” autorização suficiente para alterar áreas protegidas quando o impacto não estiver claro.
+
+## Áreas protegidas
+
+| Área                  | Exemplos                                                                              | Risco principal                                             |
+| --------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| CI/CD                 | `.github/workflows/`, pipelines, scripts de deploy, configurações de release          | Falhas em build, testes, publicação ou deploy               |
+| Infraestrutura        | Terraform, Pulumi, Kubernetes, Docker de produção, DNS, redes e políticas de acesso   | Indisponibilidade, perda de acesso ou exposição de serviços |
+| Secrets e credenciais | Secret managers, chaves, certificados, tokens e configurações sensíveis               | Exposição de credenciais ou comprometimento do ambiente     |
+| Migrations aplicadas  | Migrations já executadas em ambientes compartilhados ou produção                      | Corrupção, perda ou incompatibilidade de dados              |
+| Banco de dados        | Alterações destrutivas, remoção de colunas, tabelas ou índices críticos               | Perda de dados ou degradação do sistema                     |
+| Contratos públicos    | Formatos de resposta, códigos de erro, eventos, schemas e endpoints utilizados        | Quebra de clientes ou integrações                           |
+| Autenticação          | Estratégia de tokens, sessões, login, recuperação de senha e provedores de identidade | Incidentes de segurança ou bloqueio de usuários             |
+| Autorização           | Permissões, papéis, políticas e regras de acesso                                      | Acesso indevido ou bloqueio de operações legítimas          |
+| Dados de produção     | Escritas, exclusões, correções em massa ou scripts operacionais                       | Alteração irreversível ou perda de dados                    |
+| Releases              | Versionamento, changelog oficial, publicação e tags de produção                       | Distribuição incorreta ou rollback difícil                  |
+
+## Alterações que exigem aprovação explícita
+
+Solicite aprovação antes de:
+
+- modificar workflows de CI/CD;
+- alterar scripts de deploy;
+- mudar infraestrutura ou configurações de produção;
+- alterar DNS, redes, permissões ou políticas de acesso;
+- modificar secret stores, credenciais ou certificados;
+- editar ou excluir migrations já aplicadas;
+- executar migrations destrutivas;
+- alterar tabelas, colunas ou índices críticos;
+- modificar contratos públicos de API;
+- mudar códigos de erro utilizados por clientes;
+- alterar eventos, schemas ou mensagens consumidas por outros sistemas;
+- mudar fluxos de autenticação ou recuperação de conta;
+- alterar políticas de autorização;
+- excluir arquivos, endpoints ou dados quando o impacto não estiver claro;
+- executar operações de escrita em produção;
+- fazer deploy, release, merge ou publicação;
+- usar comandos destrutivos do Git.
+
+Comandos que exigem aprovação explícita incluem, entre outros:
+
+```bash
+git reset --hard
+git clean -fd
+git push --force
+```
+
+A aprovação deve ser específica para a ação e o ambiente. Autorização para editar código local não significa autorização para alterar produção ou fazer deploy.
+
+## Contratos públicos
+
+Antes de alterar um contrato público:
+
+1. identifique os consumidores conhecidos;
+2. localize a especificação ou schema vigente;
+3. determine se a alteração é compatível;
+4. avalie versionamento, período de depreciação ou migração;
+5. atualize testes de contrato;
+6. documente a mudança;
+7. informe os impactos antes de implementar.
+
+Considere como potencialmente incompatíveis:
+
+- remover campos;
+- renomear campos;
+- alterar tipos;
+- mudar valores permitidos;
+- modificar códigos de erro;
+- mudar semântica de campos;
+- alterar ordenação ou paginação;
+- tornar obrigatório um campo antes opcional;
+- remover ou modificar eventos publicados.
+
+Não presuma que uma alteração é segura apenas porque o compilador não apresenta erros.
+
+## Migrations e banco de dados
+
+Nunca edite silenciosamente uma migration que já tenha sido aplicada em ambiente compartilhado.
+
+Para mudanças de banco:
+
+- crie uma nova migration quando o histórico já tiver sido aplicado;
+- avalie compatibilidade entre versões antiga e nova da aplicação;
+- prefira alterações incrementais;
+- considere estratégia expandir-e-contrair;
+- faça backup ou verifique o procedimento existente antes de operações destrutivas;
+- informe riscos de lock, tempo de execução e volume de dados;
+- não execute alterações em produção sem autorização.
+
+Uma migration nova ainda pode ser de alto risco se remover dados, bloquear tabelas ou alterar tipos incompatíveis.
+
+## Autenticação e autorização
+
+Antes de alterar autenticação ou autorização:
+
+- identifique os fluxos afetados;
+- preserve mecanismos de recuperação e revogação;
+- avalie sessões existentes e tokens emitidos;
+- verifique impactos em clientes e integrações;
+- adicione testes para sucesso, falha e casos de limite;
+- analise riscos de escalada de privilégio;
+- solicite aprovação antes de alterar a estratégia de segurança.
+
+Não desative autenticação, autorização, validação ou auditoria para fazer um teste passar.
+
+## CI/CD e infraestrutura
+
+Antes de alterar CI/CD ou infraestrutura:
+
+- determine qual ambiente será afetado;
+- verifique dependências e variáveis necessárias;
+- avalie impacto em rollback;
+- confira se o pipeline possui validação ou dry-run;
+- proponha uma mudança pequena e observável;
+- não execute deploy ou aplique infraestrutura sem autorização explícita.
+
+Quando possível, prefira:
+
+- alterações incrementais;
+- feature flags;
+- ambientes de teste;
+- validação por pull request;
+- plano de rollback;
+- mudanças reversíveis.
+
+## Estratégias incrementais
+
+Quando uma mudança de alto risco for necessária, avalie estratégias como:
+
+- feature flag;
+- implantação gradual;
+- compatibilidade temporária;
+- dual-read;
+- dual-write;
+- expandir-e-contrair;
+- período de depreciação;
+- versionamento de API;
+- migração por etapas;
+- execução em ambiente de staging;
+- dry-run;
+- plano de rollback.
+
+Escolha a estratégia com base no risco e na arquitetura real do projeto. Não introduza mecanismos complexos sem necessidade.
+
+## Escopo seguro padrão
+
+Na ausência de instrução mais específica:
+
+- faça o menor diff que resolva o problema;
+- altere somente arquivos relacionados;
+- não refatore código não relacionado;
+- não reorganize pastas inteiras;
+- não atualize dependências sem necessidade;
+- não remova arquivos, endpoints ou dados;
+- não altere contratos públicos silenciosamente;
+- não misture uma mudança de risco elevado com uma feature não relacionada;
+- preserve compatibilidade quando isso for possível.
+
+## Problemas fora do escopo
+
+Se encontrar um problema relevante, mas não necessário para a tarefa:
+
+1. não o corrija automaticamente;
+2. registre o arquivo ou componente afetado;
+3. explique o risco;
+4. continue somente se a tarefa atual não for prejudicada;
+5. proponha uma alteração separada.
+
+Se o problema impedir uma implementação segura, pause e solicite orientação.
+
+## Como solicitar aprovação
+
+A solicitação deve ser objetiva e conter:
+
+- o que será alterado;
+- por que a alteração é necessária;
+- quais arquivos ou sistemas serão afetados;
+- quais são os riscos;
+- se há quebra de compatibilidade;
+- qual estratégia incremental é recomendada;
+- como a mudança será validada;
+- se existe plano de rollback.
+
+Exemplo:
+
+```text
+A alteração exige modificar a migration 0042, que já foi aplicada em produção.
+
+Risco:
+- editar essa migration pode causar divergência entre ambientes;
+- a remoção da coluna pode quebrar versões antigas da aplicação.
+
+Recomendação:
+- criar uma nova migration;
+- manter a coluna durante o período de compatibilidade;
+- remover a coluna em uma etapa posterior.
+
+Validação:
+- executar em staging;
+- verificar compatibilidade com a versão atual;
+- confirmar o plano de rollback.
+
+Aprovação necessária antes de alterar o banco ou executar a migration.
+```
+
+## Critérios de conclusão
+
+Uma alteração em área protegida só deve ser considerada concluída quando:
+
+- a aprovação necessária tiver sido obtida;
+- os arquivos e impactos tiverem sido identificados;
+- os testes relevantes tiverem sido executados;
+- a compatibilidade tiver sido avaliada;
+- a documentação ou o contrato tiver sido atualizado quando necessário;
+- o diff tiver sido revisado;
+- limitações e riscos restantes tiverem sido informados.
+
+Nunca declare uma operação como segura apenas porque ela foi executada sem erro.

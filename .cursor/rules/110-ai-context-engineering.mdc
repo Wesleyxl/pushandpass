@@ -1,0 +1,207 @@
+---
+description: Engenharia de contexto — organização de prompts, rules e documentação para agentes de IA
+globs:
+  - '**/*'
+alwaysApply: true
+---
+
+# Engenharia de contexto
+
+## Objetivo
+
+Fornecer ao agente as informações corretas, no formato adequado e no momento necessário.
+
+Priorize contexto relevante e de alta qualidade em vez de simplesmente adicionar mais tokens.
+
+O contexto deve tornar a tarefa executável, verificável e consistente com o projeto.
+
+## Camadas de contexto
+
+Use as fontes abaixo conforme a necessidade da tarefa:
+
+| Prioridade | Fonte                             | Uso                                                       |
+| ---------: | --------------------------------- | --------------------------------------------------------- |
+|          1 | Instrução atual do usuário        | Requisito imediato e objetivo da tarefa                   |
+|          2 | Rules aplicáveis                  | Comportamento, restrições e padrões do projeto            |
+|          3 | Especificações                    | Requisitos funcionais, critérios de aceitação e contratos |
+|          4 | Documentação                      | Arquitetura, decisões e conceitos do domínio              |
+|          5 | Código existente                  | Implementações, padrões e integrações reais               |
+|          6 | Referências `@arquivo` e `@pasta` | Áreas específicas indicadas para análise                  |
+|          7 | Saída do terminal e erros         | Diagnóstico, testes e depuração                           |
+
+Fontes mais específicas devem ser priorizadas em relação a fontes gerais, desde que não contradigam uma instrução explícita do usuário ou um requisito de segurança.
+
+## Processo de coleta de contexto
+
+Antes de uma alteração significativa:
+
+1. Identifique o objetivo e o resultado esperado.
+2. Localize as rules aplicáveis aos arquivos envolvidos.
+3. Consulte especificações relevantes em `docs/specs/`.
+4. Inspecione implementações semelhantes.
+5. Verifique interfaces, tipos, contratos e testes relacionados.
+6. Consulte decisões arquiteturais registradas quando a mudança afetar a estrutura do sistema.
+7. Selecione apenas os arquivos necessários para executar e validar a tarefa.
+
+Não leia o repositório inteiro quando alguns arquivos relevantes forem suficientes.
+
+Se o contexto essencial estiver ausente ou contraditório, registre a incerteza e peça uma clarificação objetiva antes de implementar.
+
+## Como escrever solicitações eficazes
+
+Uma solicitação útil deve conter, quando aplicável:
+
+- objetivo;
+- contexto relevante;
+- arquivos ou módulos envolvidos;
+- comportamento esperado;
+- restrições;
+- critérios de aceitação;
+- verificações necessárias.
+
+### Solicitação insuficiente
+
+```text
+Corrija o bug.
+```
+
+### Solicitação adequada
+
+```text
+Corrija o loop de redirecionamento após a redefinição de senha.
+
+Contexto:
+- @src/features/auth/
+- @docs/specs/password-reset.md
+
+Comportamento esperado:
+- redirecionar para `/dashboard` quando o token for válido;
+- exibir erro quando o token for inválido ou expirado.
+
+Restrições:
+- não alterar o contrato da API;
+- preservar o comportamento do login normal.
+
+Validação:
+- adicionar ou atualizar os testes do fluxo de redefinição de senha.
+```
+
+## Princípios para criação de rules
+
+- Cada rule deve ter uma única responsabilidade principal.
+- Prefira instruções acionáveis a explicações filosóficas.
+- Use frases curtas, específicas e verificáveis.
+- Inclua exemplos positivos e negativos quando um padrão for fácil de interpretar incorretamente.
+- Mantenha rules globais pequenas e aplicáveis a todo o projeto.
+- Use `globs` específicos para regras de frontend, backend, banco ou infraestrutura.
+- Use `alwaysApply: true` apenas para princípios realmente globais.
+- Evite repetir a mesma regra em vários arquivos.
+- Não copie integralmente configurações que já são aplicadas por linters, formatadores ou CI.
+- Registre a fonte de verdade quando uma regra depender de configuração externa.
+- Atualize o README ou o índice das rules quando criar uma nova categoria.
+
+## Tamanho e manutenção
+
+Como referência:
+
+- prefira menos de 150 linhas por rule;
+- evite ultrapassar 500 linhas;
+- remova instruções redundantes;
+- divida a rule quando ela começar a tratar de assuntos independentes;
+- mantenha exemplos próximos da regra que eles ilustram.
+
+O objetivo não é criar a maior documentação possível, mas fornecer instruções suficientes para orientar decisões consistentes.
+
+## Orçamento de contexto
+
+Prefira:
+
+1. uma especificação relevante;
+2. dois a quatro arquivos de referência;
+3. testes relacionados;
+4. regras aplicáveis ao caminho alterado;
+5. documentação resumida de arquitetura.
+
+Evite:
+
+- incluir o repositório inteiro sem necessidade;
+- repetir no prompt informações já presentes em arquivos acessíveis;
+- colar blocos extensos de código quando uma referência `@arquivo` for suficiente;
+- incluir documentação irrelevante para a tarefa;
+- manter histórico ou logs antigos sem relação com o problema atual.
+
+## Organização da documentação
+
+Use as fontes de acordo com sua finalidade:
+
+```text
+docs/
+├── specs/          # requisitos e critérios de aceitação
+├── architecture/   # arquitetura e limites dos módulos
+├── decisions/      # decisões arquiteturais
+└── runbooks/       # procedimentos operacionais
+```
+
+Use `.cursor/rules/` para instruções que o agente deve seguir.
+
+Use `docs/` para conhecimento do projeto que precisa ser consultado.
+
+Use `templates/` para modelos reutilizáveis.
+
+Não transforme toda documentação em rule.
+
+## Pacote de contexto para uma feature
+
+Para iniciar uma feature, reúna:
+
+```text
+docs/specs/checkout-v2.md       # objetivo e critérios de aceitação
+src/modules/checkout/           # implementação relacionada
+tests/modules/checkout/         # comportamento esperado
+.cursor/rules/                  # rules aplicáveis
+```
+
+O pacote deve conter somente o contexto necessário para:
+
+- entender a intenção;
+- implementar a mudança;
+- respeitar as restrições;
+- executar a validação.
+
+## Anti-padrões
+
+Evite:
+
+- rules contraditórias em arquivos diferentes;
+- regras globais que tratam de detalhes de um único módulo;
+- documentação narrativa usada como se fosse instrução operacional;
+- especificações sem critérios de aceitação;
+- prompts que descrevem apenas o sintoma e não o resultado esperado;
+- regras que duplicam configurações de lint, formatador ou CI;
+- contexto excessivo e irrelevante;
+- exemplos que não correspondem ao código atual;
+- múltiplas fontes de verdade para a mesma decisão;
+- manter rules obsoletas apenas por compatibilidade histórica.
+
+## Fonte única de verdade
+
+Cada decisão ou regra deve ter um único local principal.
+
+- A implementação pertence ao código.
+- A formatação pertence ao formatador.
+- A qualidade pertence ao linter e ao CI.
+- Os requisitos pertencem às especificações.
+- As decisões arquiteturais pertencem aos ADRs.
+- O comportamento do agente pertence às rules.
+
+Outros arquivos devem referenciar a fonte principal, não duplicá-la.
+
+## Validação do contexto
+
+Antes de usar uma informação como base para uma decisão:
+
+- confirme que ela está relacionada à tarefa;
+- verifique se não está desatualizada;
+- confira se não contradiz o código atual;
+- prefira especificações aprovadas e configurações executadas automaticamente;
+- destaque conflitos em vez de escolher silenciosamente uma fonte arbitrária.
